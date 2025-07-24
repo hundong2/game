@@ -1,0 +1,20 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #333;
+    margin: 0;
+    overflow: hidden;
+}
+
+#game-container {
+    position: relative;
+    border: 2px solid #fff;
+}
+
+#game-canvas {
+    display: block;
+    background-color: #000;
+    cursor: crosshair;
+}
