@@ -142,6 +142,12 @@ class GameEngine {
             zombies.add(newZombie)
         }
 
+        // Level Up Logic (Time based or Score based)
+        // Check if enough score/time passed to level up the wave difficulty
+        if (score > waveManager.currentLevel * Constants.GamePlay.LEVEL_UP_SCORE_THRESHOLD) {
+             waveManager.levelUp()
+        }
+
         // 3. Update Entities
         projectiles.forEach { it.update(dt) }
         zombies.forEach { zombie ->

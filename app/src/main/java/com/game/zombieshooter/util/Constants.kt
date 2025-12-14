@@ -72,6 +72,8 @@ object Constants {
         // 전투
         const val CRITICAL_RATE_BASE = 0.05f
         const val CRITICAL_DAMAGE_MULTIPLIER = 1.5f
+
+        const val LEVEL_UP_SCORE_THRESHOLD = 500
     }
     
     // UI 및 컨트롤러 설정
