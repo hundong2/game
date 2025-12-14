@@ -2,9 +2,7 @@ package com.game.zombieshooter.util
 
 /**
  * 게임에서 사용되는 모든 상수를 정의하는 객체
- * 
- * 이 파일에서 게임의 난이도, 캐릭터 능력치, 무기 스탯 등을 조정할 수 있습니다.
- * 초보자 팁: 게임이 너무 어렵거나 쉬우면 이 값들을 조정해보세요!
+ * 조선 무인 영웅전: 좀비 디펜스 버전에 맞게 수정됨
  */
 object Constants {
     
@@ -13,130 +11,87 @@ object Constants {
     const val GAME_HEIGHT = 1080 // 게임 화면 높이 (픽셀)
     const val FPS = 60           // 초당 프레임 수
     
-    // 캐릭터 타입별 기본 스탯
-    object CharacterStats {
-        // 스피드 타입: 빠른 이동, 낮은 HP
-        const val SPEED_TYPE_HP = 70
-        const val SPEED_TYPE_SPEED = 6f  // 프레임당 이동 거리
+    // 영웅 (Hero) 설정
+    object HeroStats {
+        // 기본 이동 속도 계수
+        const val BASE_MOVE_SPEED = 5f
         
-        // 밸런스 타입: 균형잡힌 능력
-        const val BALANCED_TYPE_HP = 100
-        const val BALANCED_TYPE_SPEED = 4f
+        // 캐릭터 히트박스
+        const val HITBOX_WIDTH = 60f
+        const val HITBOX_HEIGHT = 80f
         
-        // 탱크 타입: 높은 HP, 느린 이동
-        const val TANK_TYPE_HP = 150
-        const val TANK_TYPE_SPEED = 2.8f
-        
-        // 캐릭터 크기 (히트박스)
-        const val CHARACTER_WIDTH = 80f
-        const val CHARACTER_HEIGHT = 80f
+        // 영웅별 ID
+        const val HERO_YI_SUN_SIN = "yi_sun_sin"
+        const val HERO_YI_SEONG_GYE = "yi_seong_gye"
+        const val HERO_CHEOK_SA_GWANG = "cheok_sa_gwang"
+        const val HERO_WANG_GEON = "wang_geon"
+        const val HERO_GUNG_YE = "gung_ye"
+        const val HERO_DANGUN = "dangun"
+        const val HERO_GWANGGAETO = "gwanggaeto"
+        const val HERO_JANGSU = "jangsu"
     }
     
-    // 무기 스탯
-    object WeaponStats {
-        // AK-47: 기본 자동소총
-        const val AK47_DAMAGE = 10
-        const val AK47_FIRE_RATE = 0.1f  // 초당 발사 횟수 (0.1초 = 10발/초)
-        const val AK47_RANGE = 500f
-        const val AK47_PRICE = 0  // 기본 무기
-        
-        // M4: 높은 정확도
-        const val M4_DAMAGE = 12
-        const val M4_FIRE_RATE = 0.15f
-        const val M4_RANGE = 550f
-        const val M4_PRICE = 500
-        
-        // A16: 높은 공격력
-        const val A16_DAMAGE = 18
-        const val A16_FIRE_RATE = 0.25f
-        const val A16_RANGE = 600f
-        const val A16_PRICE = 1000
-        
-        // 바주카포: 광역 공격
-        const val BAZOOKA_DAMAGE = 50
-        const val BAZOOKA_FIRE_RATE = 2f    // 2초마다 1발
-        const val BAZOOKA_RANGE = 800f
-        const val BAZOOKA_EXPLOSION_RADIUS = 150f
-        const val BAZOOKA_PRICE = 2000
-        
-        // 화염방사기: 지속 데미지
-        const val FLAMETHROWER_DAMAGE = 5  // 초당 데미지
-        const val FLAMETHROWER_FIRE_RATE = 0.05f  // 지속적으로 발사
-        const val FLAMETHROWER_RANGE = 250f
-        const val FLAMETHROWER_BURN_DURATION = 3f  // 3초간 지속 화상
-        const val FLAMETHROWER_PRICE = 1500
-        
-        // 업그레이드 관련
-        const val UPGRADE_DAMAGE_INCREASE = 5  // 업그레이드당 증가하는 데미지
-        const val UPGRADE_COST_MULTIPLIER = 1.5f  // 업그레이드 비용 증가율
-        const val MAX_UPGRADE_LEVEL = 10  // 최대 업그레이드 레벨
-    }
-    
-    // 좀비 스탯
+    // 좀비 (Enemy) 설정
     object ZombieStats {
-        // 일반 좀비
-        const val NORMAL_BASE_HP = 20
-        const val NORMAL_SPEED = 1.5f
-        const val NORMAL_SCORE = 10
-        const val NORMAL_GOLD = 5
-        
-        // 빠른 좀비
-        const val FAST_BASE_HP = 15
-        const val FAST_SPEED = 3f
-        const val FAST_SCORE = 15
-        const val FAST_GOLD = 8
-        
-        // 강한 좀비
-        const val STRONG_BASE_HP = 40
-        const val STRONG_SPEED = 1f
-        const val STRONG_SCORE = 25
-        const val STRONG_GOLD = 15
-        
-        // 탱크 좀비
-        const val TANK_BASE_HP = 80
-        const val TANK_SPEED = 0.5f
-        const val TANK_SCORE = 50
-        const val TANK_GOLD = 30
-        
-        // 보스 좀비
-        const val BOSS_BASE_HP = 200
-        const val BOSS_SPEED = 0.8f
-        const val BOSS_SCORE = 100
-        const val BOSS_GOLD = 50
-        
-        // 좀비 크기
+         // Legacy Support & New Stats
         const val ZOMBIE_WIDTH = 70f
         const val ZOMBIE_HEIGHT = 70f
+    }
+
+    object EnemyStats {
+        const val SPAWN_DISTANCE = 1000f // 플레이어로부터 생성되는 거리
+        const val DESPAWN_DISTANCE = 2000f
         
-        // 레벨당 HP 증가율
-        const val HP_INCREASE_PER_LEVEL = 10
+        // 좀비 타입
+        const val TYPE_NORMAL = "normal"
+        const val TYPE_RUNNER = "runner"
+        const val TYPE_TANK = "tank"
+        const val TYPE_BOSS = "boss"
+
+        // 기본 스탯 (Factory에서 레벨별 보정)
+        const val BASE_HP_NORMAL = 50
+        const val BASE_HP_RUNNER = 30
+        const val BASE_HP_TANK = 150
+        const val BASE_HP_BOSS = 1000
     }
     
     // 게임 플레이 설정
     object GamePlay {
-        const val INITIAL_ZOMBIE_SPAWN_RATE = 2f  // 초당 좀비 생성 수
-        const val MAX_ZOMBIES_ON_SCREEN = 50      // 화면에 동시에 존재할 수 있는 최대 좀비 수
-        const val LEVEL_UP_SCORE_THRESHOLD = 500  // 레벨업에 필요한 점수
-        const val SPAWN_RATE_INCREASE = 0.2f      // 레벨당 스폰 속도 증가
+        // 스테이지 시스템
+        const val WAVE_DURATION_SEC = 60 // 한 웨이브 지속 시간
+        const val TIME_SCORE_MULTIPLIER = 10 // 남은 시간 1초당 점수
         
-        // 충돌 감지 거리
-        const val COLLISION_DISTANCE = 50f  // 플레이어와 좀비 사이의 충돌 거리
-        const val BULLET_COLLISION_DISTANCE = 20f  // 총알과 좀비 사이의 충돌 거리
+        const val MAX_ZOMBIES_ON_SCREEN = 50
+        const val BULLET_COLLISION_DISTANCE = 20f
+        const val COLLISION_DISTANCE = 50f
+
+        // 경험치 및 레벨
+        const val EXP_BASE_REQUIREMENT = 100
+        const val EXP_GROWTH_FACTOR = 1.2f
+
+        // 전투
+        const val CRITICAL_RATE_BASE = 0.05f
+        const val CRITICAL_DAMAGE_MULTIPLIER = 1.5f
+
+        const val LEVEL_UP_SCORE_THRESHOLD = 500
     }
     
-    // UI 관련
-    object UI {
-        const val HUD_PADDING = 20f
-        const val HUD_TEXT_SIZE = 40f
-        const val BUTTON_WIDTH = 150f
-        const val BUTTON_HEIGHT = 150f
-        const val WEAPON_ICON_SIZE = 100f
-    }
-    
-    // 사운드 설정
-    object Sound {
-        const val MASTER_VOLUME = 1.0f
-        const val SFX_VOLUME = 0.8f
-        const val MUSIC_VOLUME = 0.6f
+    // UI 및 컨트롤러 설정
+    object Control {
+        // 가상 조이스틱 (Right Bottom)
+        const val JOYSTICK_CENTER_X = GAME_WIDTH - 250f
+        const val JOYSTICK_CENTER_Y = GAME_HEIGHT - 250f
+        const val JOYSTICK_RADIUS = 150f
+
+        // 액션 버튼 (Left Bottom)
+        const val BTN_ATTACK_X = 250f
+        const val BTN_ATTACK_Y = GAME_HEIGHT - 250f
+        const val BTN_RADIUS = 100f
+
+        const val BTN_WEAPON_SWAP_X = 400f
+        const val BTN_WEAPON_SWAP_Y = GAME_HEIGHT - 150f
+
+        const val BTN_SKILL_X = 400f
+        const val BTN_SKILL_Y = GAME_HEIGHT - 350f
     }
 }

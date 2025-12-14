@@ -11,12 +11,7 @@ buildscript {
     }
 }
 
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
+// allprojects block removed because dependencyResolutionManagement in settings.gradle handles it.
 
 task clean(type: Delete) {
     delete rootProject.buildDir
