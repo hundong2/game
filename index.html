@@ -2,14 +2,72 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>패줌 (Fast Zoom)</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Zombie Survival 3D</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; user-select: none; }
+        #game-container { position: relative; width: 100vw; height: 100vh; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+
+        /* HUD */
+        #hud { position: absolute; bottom: 20px; left: 20px; color: white; text-shadow: 1px 1px 2px black; display: none; }
+        .stat-box { font-size: 24px; margin-bottom: 10px; }
+        #crosshair {
+            position: absolute; top: 50%; left: 50%; width: 20px; height: 20px;
+            background: transparent; border: 2px solid rgba(255, 255, 255, 0.8); border-radius: 50%;
+            transform: translate(-50%, -50%); pointer-events: none;
+            display: none;
+        }
+        #center-dot {
+            position: absolute; top: 50%; left: 50%; width: 4px; height: 4px;
+            background: red; border-radius: 50%; transform: translate(-50%, -50%);
+        }
+
+        /* Screens */
+        #start-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; color: white; pointer-events: auto;
+        }
+        .class-btn {
+            padding: 15px 30px; margin: 10px; font-size: 20px; cursor: pointer;
+            background: #444; color: white; border: 2px solid #666; border-radius: 5px;
+        }
+        .class-btn:hover { background: #666; }
+
+        #mobile-controls {
+            display: none; /* Enabled via JS if touch detected */
+            pointer-events: auto;
+        }
+        .joystick-zone {
+            position: absolute; bottom: 50px; width: 150px; height: 150px; background: rgba(255,255,255,0.1); border-radius: 50%;
+        }
+        #left-stick { left: 50px; }
+        #right-stick { right: 50px; }
+    </style>
 </head>
 <body>
     <div id="game-container">
-        <canvas id="game-canvas" width="800" height="600"></canvas>
+        <div id="ui-layer">
+            <div id="crosshair"><div id="center-dot"></div></div>
+            <div id="hud">
+                <div class="stat-box">Stage: <span id="stage-val">1</span></div>
+                <div class="stat-box">HP: <span id="hp-val">100</span></div>
+                <div class="stat-box">Ammo: <span id="ammo-val">∞</span></div>
+            </div>
+            <div id="start-screen">
+                <h1>ZOMBIE SURVIVAL LOOP</h1>
+                <p>Select your character</p>
+                <div id="class-selection">
+                    <!-- Buttons injected by JS -->
+                </div>
+            </div>
+            <div id="mobile-controls">
+                <div id="left-stick" class="joystick-zone"></div>
+                <div id="right-stick" class="joystick-zone"></div>
+            </div>
+        </div>
     </div>
-    <script src="game.js"></script>
+    <script type="module" src="/src/main.js"></script>
 </body>
 </html>
