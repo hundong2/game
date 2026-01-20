@@ -6,6 +6,7 @@ import * as Characters from './logic/Characters';
 import { Zombie } from './logic/Zombie';
 import { ZombieEntity } from './entities/ZombieEntity';
 import { WeaponSystem } from './entities/WeaponSystem';
+import { FirstPersonWeaponView } from './entities/FirstPersonWeaponView';
 
 // --- Initialization ---
 const scene = new THREE.Scene();
@@ -23,6 +24,10 @@ setupEnvironment(scene);
 const gameState = new GameState();
 const weaponSystem = new WeaponSystem(scene);
 const controller = new PlayerController(camera, renderer.domElement);
+const fpWeaponView = new FirstPersonWeaponView(renderer);
+
+// Connect weapon system to weapon view for recoil
+weaponSystem.setFPWeaponView(fpWeaponView);
 
 // Entities
 let playerChar = null;
@@ -52,6 +57,9 @@ function startGame(characterClass) {
 
     // Apply character speed to controller
     controller.setSpeed(playerChar.speed);
+
+    // Set weapon view based on character type
+    fpWeaponView.setWeapon(playerChar.type);
 
     // UI Update
     startScreen.style.display = 'none';
@@ -152,6 +160,11 @@ function animate() {
         controller.update(delta);
         weaponSystem.update(delta, zombies);
 
+        // Update first person weapon view with movement state
+        const isMoving = controller.moveForward || controller.moveBackward ||
+                         controller.moveLeft || controller.moveRight;
+        fpWeaponView.update(delta, { isMoving });
+
         // Zombie Logic
         for (let i = zombies.length - 1; i >= 0; i--) {
             const z = zombies[i];
@@ -188,7 +201,13 @@ function animate() {
         updateHUD();
     }
 
+    // Render main scene
     renderer.render(scene, camera);
+
+    // Render weapon view on top (if game is active)
+    if (playerChar && !playerChar.isDead) {
+        fpWeaponView.render();
+    }
 }
 
 function gameOver() {

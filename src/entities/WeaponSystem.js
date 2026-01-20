@@ -4,12 +4,25 @@ export class WeaponSystem {
     constructor(scene) {
         this.scene = scene;
         this.projectiles = [];
+        this.fpWeaponView = null;
+    }
+
+    /**
+     * Connect to FirstPersonWeaponView for recoil animation
+     */
+    setFPWeaponView(fpWeaponView) {
+        this.fpWeaponView = fpWeaponView;
     }
 
     fire(playerClass, camera, enemies) {
         const origin = camera.position;
         const direction = new THREE.Vector3();
         camera.getWorldDirection(direction);
+
+        // Trigger recoil animation on weapon view
+        if (this.fpWeaponView) {
+            this.fpWeaponView.triggerRecoil(playerClass.type);
+        }
 
         switch (playerClass.type) {
             case 'Knight':
