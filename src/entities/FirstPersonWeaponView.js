@@ -52,6 +52,12 @@ export class FirstPersonWeaponView {
         this.swayTime = 0;
         this.swayAmount = 0.003;
 
+        // Knight sword swing animation
+        this.swingPhase = 0;
+        this.isSwinging = false;
+        this.swingDuration = 0.3; // seconds
+        this.swingTimer = 0;
+
         // Handle window resize
         window.addEventListener('resize', () => this.onResize());
     }
@@ -124,6 +130,12 @@ export class FirstPersonWeaponView {
      * Trigger recoil animation
      */
     triggerRecoil(characterType) {
+        // Knight uses sword swing instead of recoil
+        if (characterType === 'Knight') {
+            this.triggerSwordSwing();
+            return;
+        }
+
         const config = this.recoilConfig[characterType] || this.recoilConfig['Knight'];
         this.recoilAmount = 1.0;
         this.recoilRecovery = config.recovery;
@@ -144,6 +156,16 @@ export class FirstPersonWeaponView {
     }
 
     /**
+     * Trigger sword swing animation for Knight
+     */
+    triggerSwordSwing() {
+        if (this.isSwinging) return; // Don't interrupt current swing
+        this.isSwinging = true;
+        this.swingTimer = 0;
+        this.swingPhase = 0;
+    }
+
+    /**
      * Update weapon view (call every frame)
      */
     update(delta, movementState) {
@@ -155,9 +177,62 @@ export class FirstPersonWeaponView {
         this.updateSway(delta);
         this.updateBobbing(delta, isMoving);
         this.updateRecoil(delta);
+        this.updateSwordSwing(delta);
 
         // Apply combined position
         this.applyTransforms();
+    }
+
+    /**
+     * Sword swing animation for Knight
+     */
+    updateSwordSwing(delta) {
+        if (!this.isSwinging) return;
+
+        this.swingTimer += delta;
+        const progress = Math.min(this.swingTimer / this.swingDuration, 1.0);
+
+        // Swing animation curve: wind up -> fast slash -> follow through
+        if (progress < 0.2) {
+            // Wind up: pull back and rotate right
+            const windUp = progress / 0.2;
+            this.swingPhase = windUp;
+            this.swingOffset = {
+                x: -0.1 * windUp,    // Pull right
+                y: 0.05 * windUp,    // Lift up slightly
+                z: 0.05 * windUp,    // Pull back
+                rotY: 0.3 * windUp,  // Rotate right
+                rotZ: 0.2 * windUp   // Tilt
+            };
+        } else if (progress < 0.5) {
+            // Fast slash: swing left
+            const slash = (progress - 0.2) / 0.3;
+            const easeSlash = 1 - Math.pow(1 - slash, 3); // Ease out
+            this.swingOffset = {
+                x: -0.1 + 0.35 * easeSlash,    // Swing to left
+                y: 0.05 - 0.1 * easeSlash,     // Drop down
+                z: 0.05 - 0.15 * easeSlash,    // Push forward
+                rotY: 0.3 - 0.8 * easeSlash,   // Rotate left (full swing)
+                rotZ: 0.2 - 0.5 * easeSlash    // Tilt opposite
+            };
+        } else {
+            // Follow through and return
+            const returnProgress = (progress - 0.5) / 0.5;
+            const easeReturn = 1 - Math.pow(1 - returnProgress, 2);
+            this.swingOffset = {
+                x: 0.25 * (1 - easeReturn),
+                y: -0.05 * (1 - easeReturn),
+                z: -0.1 * (1 - easeReturn),
+                rotY: -0.5 * (1 - easeReturn),
+                rotZ: -0.3 * (1 - easeReturn)
+            };
+        }
+
+        // End swing
+        if (progress >= 1.0) {
+            this.isSwinging = false;
+            this.swingOffset = { x: 0, y: 0, z: 0, rotY: 0, rotZ: 0 };
+        }
     }
 
     /**
@@ -220,26 +295,35 @@ export class FirstPersonWeaponView {
         const recoilPosZ = this.recoilAmount * config.kickback;
         const recoilPosY = this.recoilAmount * config.kickback * 0.3;
 
+        // Calculate swing offsets (Knight only)
+        const swingX = this.swingOffset?.x || 0;
+        const swingY = this.swingOffset?.y || 0;
+        const swingZ = this.swingOffset?.z || 0;
+        const swingRotY = this.swingOffset?.rotY || 0;
+        const swingRotZ = this.swingOffset?.rotZ || 0;
+
         // Combine all offsets
         const finalX = this.basePosition.x +
             (this.swayOffset?.x || 0) +
-            (this.bobOffset?.x || 0);
+            (this.bobOffset?.x || 0) +
+            swingX;
 
         const finalY = this.basePosition.y +
             (this.swayOffset?.y || 0) +
             (this.bobOffset?.y || 0) +
-            recoilPosY;
+            recoilPosY +
+            swingY;
 
-        const finalZ = this.basePosition.z + recoilPosZ;
+        const finalZ = this.basePosition.z + recoilPosZ + swingZ;
 
         // Apply position
         this.weaponContainer.position.set(finalX, finalY, finalZ);
 
-        // Apply rotation (recoil kicks weapon up)
+        // Apply rotation (recoil kicks weapon up, swing rotates)
         this.weaponContainer.rotation.set(
             this.baseRotation.x + recoilRotX,
-            this.baseRotation.y,
-            this.baseRotation.z
+            this.baseRotation.y + swingRotY,
+            this.baseRotation.z + swingRotZ
         );
     }
 

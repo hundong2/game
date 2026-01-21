@@ -22,10 +22,20 @@ export class ZombieEntity {
         // Animation state
         this.walkCycle = Math.random() * Math.PI * 2; // Random start phase
         this.isMoving = false;
+        this.animTime = Math.random() * 100; // For eye pulse and other effects
 
         // Zombie behavior variations
         this.swayAmount = 0.1 + Math.random() * 0.1; // Random sway intensity
         this.walkSpeed = 4 + Math.random() * 2; // Random animation speed
+        this.aggressionLevel = 0; // Increases when close to player
+
+        // Get head components for animation
+        if (this.head && this.head.userData) {
+            this.leftEye = this.head.userData.leftEye;
+            this.rightEye = this.head.userData.rightEye;
+            this.jaw = this.head.userData.jaw;
+            this.mouth = this.head.userData.mouth;
+        }
 
         this.scene.add(this.mesh);
         this.isDead = false;
@@ -34,25 +44,40 @@ export class ZombieEntity {
     update(delta, playerPosition) {
         if (this.isDead) return;
 
+        this.animTime += delta;
+
         // Simple Chase AI
         const direction = new THREE.Vector3()
             .subVectors(playerPosition, this.mesh.position)
             .normalize();
 
+        // Calculate distance to player
+        const distanceToPlayer = this.mesh.position.distanceTo(playerPosition);
+
         // Ignore Y difference for movement (ground level)
         direction.y = 0;
 
-        // Move zombie
-        const moveSpeed = this.logic.speed * delta;
+        // Aggression increases when close to player
+        this.aggressionLevel = Math.max(0, 1 - distanceToPlayer / 15);
+
+        // Move zombie (faster when aggressive)
+        const speedMultiplier = 1 + this.aggressionLevel * 0.3;
+        const moveSpeed = this.logic.speed * delta * speedMultiplier;
         this.mesh.position.add(direction.clone().multiplyScalar(moveSpeed));
 
-        // Face player (only Y rotation)
+        // Face player (only Y rotation) with slight head tracking
         const targetAngle = Math.atan2(direction.x, direction.z);
         this.mesh.rotation.y = targetAngle;
 
         // Update walk animation
         this.isMoving = moveSpeed > 0.001;
         this.updateWalkAnimation(delta);
+
+        // Update facial animations
+        this.updateFacialAnimation(delta, distanceToPlayer);
+
+        // Update eye glow
+        this.updateEyeGlow(delta);
     }
 
     /**
@@ -104,6 +129,51 @@ export class ZombieEntity {
         // Vertical bobbing (up/down with each step)
         const verticalBob = Math.abs(Math.sin(this.walkCycle * 2)) * 0.03;
         this.mesh.position.y = verticalBob;
+    }
+
+    /**
+     * Facial animation - jaw movement, aggressive behavior when close
+     */
+    updateFacialAnimation(delta, distanceToPlayer) {
+        // Jaw snapping when close to player (trying to bite)
+        if (this.jaw && distanceToPlayer < 8) {
+            const snapIntensity = Math.max(0, 1 - distanceToPlayer / 8);
+            const snapFrequency = 5 + snapIntensity * 10;
+            const jawOpen = (Math.sin(this.animTime * snapFrequency) + 1) * 0.5 * snapIntensity;
+            this.jaw.rotation.x = jawOpen * 0.4; // Max open angle
+            this.jaw.position.y = -0.12 - jawOpen * 0.02;
+        }
+
+        // Head twitching when very close
+        if (this.head && distanceToPlayer < 5) {
+            const twitch = (Math.random() - 0.5) * 0.1 * this.aggressionLevel;
+            this.head.rotation.y = twitch;
+        }
+    }
+
+    /**
+     * Eye glow pulsing effect
+     */
+    updateEyeGlow(delta) {
+        if (!this.leftEye || !this.rightEye) return;
+
+        // Pulsing intensity based on aggression
+        const baseIntensity = 1.0;
+        const pulseAmount = 0.5 + this.aggressionLevel * 0.5;
+        const pulseSpeed = 3 + this.aggressionLevel * 5;
+        const intensity = baseIntensity + Math.sin(this.animTime * pulseSpeed) * pulseAmount;
+
+        if (this.leftEye.material) {
+            this.leftEye.material.emissiveIntensity = intensity;
+        }
+        if (this.rightEye.material) {
+            this.rightEye.material.emissiveIntensity = intensity;
+        }
+
+        // Scale eyes slightly when aggressive (dilated)
+        const eyeScale = 1 + this.aggressionLevel * 0.2;
+        this.leftEye.scale.setScalar(eyeScale);
+        this.rightEye.scale.setScalar(eyeScale);
     }
 
     takeDamage(amount) {

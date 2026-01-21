@@ -5,6 +5,16 @@ export class WeaponSystem {
         this.scene = scene;
         this.projectiles = [];
         this.fpWeaponView = null;
+        this.onHit = null; // Callback when hitting enemy
+        this.onKill = null; // Callback when killing enemy
+    }
+
+    /**
+     * Set hit/kill callbacks
+     */
+    setCallbacks(onHit, onKill) {
+        this.onHit = onHit;
+        this.onKill = onKill;
     }
 
     /**
@@ -39,24 +49,69 @@ export class WeaponSystem {
         }
     }
 
+    /**
+     * Find zombie entity from a hit mesh (could be child of zombie group)
+     */
+    findZombieFromHit(hitObject, enemies) {
+        for (const enemy of enemies) {
+            // Check if hit object is the zombie mesh or any of its children
+            let current = hitObject;
+            while (current) {
+                if (current === enemy.mesh) {
+                    return enemy;
+                }
+                current = current.parent;
+            }
+        }
+        return null;
+    }
+
     meleeAttack(origin, direction, enemies, damage) {
-        // Short range raycast or box check
-        const raycaster = new THREE.Raycaster(origin, direction, 0, 3); // 3 units range
-        const intersects = raycaster.intersectObjects(enemies.map(e => e.mesh));
+        // Short range raycast - check all children recursively
+        const raycaster = new THREE.Raycaster(origin, direction, 0, 4); // 4 units range for melee
+        const allMeshes = [];
+        enemies.forEach(e => {
+            e.mesh.traverse(child => {
+                if (child.isMesh) allMeshes.push(child);
+            });
+        });
+
+        const intersects = raycaster.intersectObjects(allMeshes);
 
         if (intersects.length > 0) {
-            const hitEnemy = enemies.find(e => e.mesh === intersects[0].object);
-            if (hitEnemy) hitEnemy.takeDamage(damage);
+            const hitEnemy = this.findZombieFromHit(intersects[0].object, enemies);
+            if (hitEnemy && !hitEnemy.isDead) {
+                const willKill = hitEnemy.logic.hp <= damage;
+                hitEnemy.takeDamage(damage);
+
+                // Trigger callbacks
+                if (this.onHit) this.onHit(hitEnemy);
+                if (willKill && this.onKill) this.onKill(hitEnemy);
+            }
         }
     }
 
     hitscanAttack(origin, direction, enemies, damage) {
         const raycaster = new THREE.Raycaster(origin, direction, 0, 100);
-        const intersects = raycaster.intersectObjects(enemies.map(e => e.mesh));
+        const allMeshes = [];
+        enemies.forEach(e => {
+            e.mesh.traverse(child => {
+                if (child.isMesh) allMeshes.push(child);
+            });
+        });
+
+        const intersects = raycaster.intersectObjects(allMeshes);
 
         if (intersects.length > 0) {
-            const hitEnemy = enemies.find(e => e.mesh === intersects[0].object);
-            if (hitEnemy) hitEnemy.takeDamage(damage);
+            const hitEnemy = this.findZombieFromHit(intersects[0].object, enemies);
+            if (hitEnemy && !hitEnemy.isDead) {
+                const willKill = hitEnemy.logic.hp <= damage;
+                hitEnemy.takeDamage(damage);
+
+                // Trigger callbacks
+                if (this.onHit) this.onHit(hitEnemy);
+                if (willKill && this.onKill) this.onKill(hitEnemy);
+            }
         }
     }
 
@@ -95,12 +150,24 @@ export class WeaponSystem {
 
             p.life -= delta;
 
-            // Collision
-            // Simple distance check for optimization instead of raycast every frame
+            // Collision - check against zombie center (not foot position)
             let hit = false;
             for (const enemy of enemies) {
-                if (p.mesh.position.distanceTo(enemy.mesh.position) < 1.0) {
+                if (enemy.isDead) continue;
+
+                // Get zombie center position (y=1.0 is roughly center of zombie)
+                const zombieCenter = enemy.mesh.position.clone();
+                zombieCenter.y += 1.0;
+
+                // Check distance to zombie center with larger hitbox
+                if (p.mesh.position.distanceTo(zombieCenter) < 1.2) {
+                    const willKill = enemy.logic.hp <= p.damage;
                     enemy.takeDamage(p.damage);
+
+                    // Trigger callbacks
+                    if (this.onHit) this.onHit(enemy);
+                    if (willKill && this.onKill) this.onKill(enemy);
+
                     hit = true;
                     break;
                 }
