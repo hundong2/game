@@ -188,6 +188,60 @@ killFeed.style.cssText = `
 `;
 document.body.appendChild(killFeed);
 
+// Stage announcement overlay
+const stageAnnouncement = document.createElement('div');
+stageAnnouncement.id = 'stage-announcement';
+stageAnnouncement.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 200;
+    font-family: 'Arial Black', Arial, sans-serif;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+`;
+stageAnnouncement.innerHTML = `
+    <div style="font-size: 64px; color: #ff4444; text-shadow: 0 0 30px #ff0000, 0 0 60px #ff0000, 2px 2px 4px black; letter-spacing: 8px;">
+        STAGE <span id="stage-num">1</span>
+    </div>
+    <div style="font-size: 24px; color: #ffaa00; text-shadow: 0 0 15px #ff6600; margin-top: 15px; letter-spacing: 4px;">
+        ZOMBIES INCOMING
+    </div>
+`;
+document.body.appendChild(stageAnnouncement);
+
+// Show stage announcement
+function showStageAnnouncement(stageNum, loopCount) {
+    const stageNumEl = document.getElementById('stage-num');
+    stageNumEl.textContent = stageNum;
+
+    // Update subtitle based on loop
+    const subtitle = stageAnnouncement.querySelector('div:last-child');
+    if (loopCount > 1) {
+        subtitle.textContent = `LOOP ${loopCount} - NIGHTMARE MODE`;
+        subtitle.style.color = '#ff00ff';
+    } else {
+        subtitle.textContent = 'ZOMBIES INCOMING';
+        subtitle.style.color = '#ffaa00';
+    }
+
+    // Show with animation
+    stageAnnouncement.style.opacity = '1';
+    stageAnnouncement.style.transform = 'translate(-50%, -50%) scale(1.1)';
+
+    setTimeout(() => {
+        stageAnnouncement.style.transform = 'translate(-50%, -50%) scale(1)';
+    }, 100);
+
+    // Hide after delay
+    setTimeout(() => {
+        stageAnnouncement.style.opacity = '0';
+    }, 2500);
+}
+
 // Damage direction indicators
 const damageIndicators = document.createElement('div');
 damageIndicators.id = 'damage-indicators';
@@ -241,9 +295,17 @@ function startGame(characterClass) {
 
 function resetStage() {
     zombiesKilledInStage = 0;
-    // Clear existing zombies
-    for (const z of zombies) scene.remove(z.mesh);
+    // Clear existing zombies with fade out effect
+    for (const z of zombies) {
+        if (!z.isDead) {
+            z.isDead = true;
+            scene.remove(z.mesh);
+        }
+    }
     zombies.length = 0;
+
+    // Show stage announcement
+    showStageAnnouncement(gameState.currentStage, gameState.loopCount);
 
     updateHUD();
 }

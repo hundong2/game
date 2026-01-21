@@ -79,7 +79,7 @@ export class ProceduralZombie {
     }
 
     /**
-     * Create zombie head with glowing eyes and horrific details
+     * Create zombie head with realistic human proportions and horrific details
      */
     static createHead() {
         const group = new THREE.Group();
@@ -90,153 +90,217 @@ export class ProceduralZombie {
             metalness: 0.05
         });
 
+        const skinMatDark = new THREE.MeshStandardMaterial({
+            color: this.SKIN_COLOR_ALT,
+            roughness: 0.9,
+            metalness: 0.05
+        });
+
         const woundMat = new THREE.MeshStandardMaterial({
             color: this.SKIN_WOUND,
             roughness: 0.6,
             metalness: 0.2
         });
 
-        // Main head (slightly elongated, asymmetric skull)
-        const headGeo = new THREE.SphereGeometry(0.18, 16, 12);
+        // Main skull - more human-like oval shape
+        const headGeo = new THREE.SphereGeometry(0.12, 20, 16);
         const head = new THREE.Mesh(headGeo, skinMat);
-        head.scale.set(1, 1.1, 0.95);
+        head.scale.set(0.9, 1.05, 0.95); // Slightly elongated vertically
 
-        // Deformed skull bump
-        const skullBumpGeo = new THREE.SphereGeometry(0.08, 8, 8);
-        const skullBump = new THREE.Mesh(skullBumpGeo, skinMat);
-        skullBump.position.set(0.08, 0.12, -0.05);
+        // Forehead (more prominent)
+        const foreheadGeo = new THREE.SphereGeometry(0.1, 12, 10);
+        const forehead = new THREE.Mesh(foreheadGeo, skinMat);
+        forehead.position.set(0, 0.06, 0.03);
+        forehead.scale.set(1.1, 0.7, 0.7);
 
-        // Brow ridge (more pronounced, menacing)
-        const browGeo = new THREE.BoxGeometry(0.22, 0.05, 0.12);
-        const brow = new THREE.Mesh(browGeo, skinMat);
-        brow.position.set(0, 0.1, 0.1);
-        brow.rotation.x = 0.2;
+        // Cheekbones (gaunt, sunken look)
+        const cheekGeo = new THREE.SphereGeometry(0.04, 8, 8);
+        const leftCheek = new THREE.Mesh(cheekGeo, skinMat);
+        leftCheek.position.set(-0.08, -0.02, 0.07);
+        leftCheek.scale.set(1.2, 0.8, 0.6);
 
-        // Deep eye sockets (dark hollows)
-        const socketGeo = new THREE.SphereGeometry(0.055, 10, 10);
+        const rightCheek = new THREE.Mesh(cheekGeo, skinMat);
+        rightCheek.position.set(0.08, -0.02, 0.07);
+        rightCheek.scale.set(1.2, 0.8, 0.6);
+
+        // Brow ridge (menacing but human)
+        const browGeo = new THREE.BoxGeometry(0.18, 0.025, 0.06);
+        const brow = new THREE.Mesh(browGeo, skinMatDark);
+        brow.position.set(0, 0.05, 0.08);
+        brow.rotation.x = 0.15;
+
+        // Deep eye sockets (dark hollows - sunken eyes)
+        const socketGeo = new THREE.SphereGeometry(0.032, 12, 12);
         const socketMat = new THREE.MeshStandardMaterial({
-            color: 0x0a0a0a,
+            color: 0x1a0a0a,
             roughness: 1
         });
 
         const leftSocket = new THREE.Mesh(socketGeo, socketMat);
-        leftSocket.position.set(-0.07, 0.03, 0.1);
-        leftSocket.scale.set(1, 1.2, 0.6);
+        leftSocket.position.set(-0.045, 0.02, 0.08);
+        leftSocket.scale.set(1, 1.1, 0.5);
 
         const rightSocket = new THREE.Mesh(socketGeo, socketMat);
-        rightSocket.position.set(0.07, 0.03, 0.1);
-        rightSocket.scale.set(1, 1.2, 0.6);
+        rightSocket.position.set(0.045, 0.02, 0.08);
+        rightSocket.scale.set(1, 1.1, 0.5);
 
-        // Glowing eyes with emissive material
-        const eyeGeo = new THREE.SphereGeometry(0.04, 10, 10);
+        // Human-like eyes with pupils
+        const eyeWhiteGeo = new THREE.SphereGeometry(0.022, 12, 12);
+        const eyeWhiteMat = new THREE.MeshStandardMaterial({
+            color: 0xccccaa, // Yellowed/bloodshot
+            roughness: 0.3
+        });
+
+        const leftEyeWhite = new THREE.Mesh(eyeWhiteGeo, eyeWhiteMat);
+        leftEyeWhite.position.set(-0.042, 0.018, 0.095);
+
+        const rightEyeWhite = new THREE.Mesh(eyeWhiteGeo, eyeWhiteMat);
+        rightEyeWhite.position.set(0.042, 0.018, 0.095);
+
+        // Glowing red pupils
+        const pupilGeo = new THREE.SphereGeometry(0.012, 10, 10);
         const eyeMat = new THREE.MeshStandardMaterial({
             color: this.EYE_COLOR,
             emissive: this.EYE_GLOW,
             emissiveIntensity: 1.5
         });
 
-        const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-        leftEye.position.set(-0.065, 0.02, 0.13);
+        const leftEye = new THREE.Mesh(pupilGeo, eyeMat);
+        leftEye.position.set(-0.04, 0.015, 0.115);
         leftEye.userData.isEye = true;
 
-        const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
-        rightEye.position.set(0.065, 0.02, 0.13);
+        const rightEye = new THREE.Mesh(pupilGeo, eyeMat);
+        rightEye.position.set(0.04, 0.015, 0.115);
         rightEye.userData.isEye = true;
 
-        // Store eye references for pulsing animation
         group.userData.leftEye = leftEye;
         group.userData.rightEye = rightEye;
 
-        // Rotting nose (partially missing)
-        const noseGeo = new THREE.ConeGeometry(0.025, 0.05, 4);
-        const nose = new THREE.Mesh(noseGeo, skinMat);
-        nose.position.set(0, -0.02, 0.16);
-        nose.rotation.x = Math.PI;
+        // Human-like nose bridge and tip
+        const noseBridgeGeo = new THREE.BoxGeometry(0.025, 0.04, 0.03);
+        const noseBridge = new THREE.Mesh(noseBridgeGeo, skinMat);
+        noseBridge.position.set(0, 0, 0.1);
 
-        // Gaping mouth with exposed teeth
-        const mouthGeo = new THREE.BoxGeometry(0.12, 0.06, 0.06);
-        const mouthMat = new THREE.MeshBasicMaterial({ color: 0x080808 });
+        const noseTipGeo = new THREE.SphereGeometry(0.018, 8, 8);
+        const noseTip = new THREE.Mesh(noseTipGeo, skinMat);
+        noseTip.position.set(0, -0.025, 0.115);
+        noseTip.scale.set(1.2, 0.8, 1);
+
+        // Nostrils
+        const nostrilGeo = new THREE.SphereGeometry(0.008, 6, 6);
+        const nostrilMat = new THREE.MeshBasicMaterial({ color: 0x0a0a0a });
+        const leftNostril = new THREE.Mesh(nostrilGeo, nostrilMat);
+        leftNostril.position.set(-0.012, -0.035, 0.11);
+        const rightNostril = new THREE.Mesh(nostrilGeo, nostrilMat);
+        rightNostril.position.set(0.012, -0.035, 0.11);
+
+        // Upper lip
+        const upperLipGeo = new THREE.BoxGeometry(0.06, 0.015, 0.02);
+        const upperLip = new THREE.Mesh(upperLipGeo, skinMatDark);
+        upperLip.position.set(0, -0.055, 0.1);
+
+        // Mouth cavity
+        const mouthGeo = new THREE.BoxGeometry(0.055, 0.025, 0.025);
+        const mouthMat = new THREE.MeshBasicMaterial({ color: 0x1a0505 });
         const mouth = new THREE.Mesh(mouthGeo, mouthMat);
-        mouth.position.set(0, -0.09, 0.13);
+        mouth.position.set(0, -0.07, 0.095);
         mouth.userData.isMouth = true;
         group.userData.mouth = mouth;
 
-        // Upper teeth (jagged)
-        const teethMat = new THREE.MeshStandardMaterial({ color: 0xaaaa88, roughness: 0.4 });
-        for (let i = 0; i < 5; i++) {
-            const toothGeo = new THREE.ConeGeometry(0.008, 0.02 + Math.random() * 0.01, 4);
+        // Teeth (more realistic, slight gaps)
+        const teethMat = new THREE.MeshStandardMaterial({ color: 0xcccc99, roughness: 0.4 });
+        for (let i = 0; i < 6; i++) {
+            const toothGeo = new THREE.BoxGeometry(0.007, 0.012, 0.008);
             const tooth = new THREE.Mesh(toothGeo, teethMat);
-            tooth.position.set(-0.04 + i * 0.02, -0.065, 0.155);
-            tooth.rotation.x = Math.PI;
-            if (Math.random() > 0.7) tooth.visible = false; // Missing teeth
+            tooth.position.set(-0.022 + i * 0.009, -0.06, 0.105);
+            if (Math.random() > 0.8) tooth.visible = false;
             group.add(tooth);
         }
 
-        // Lower teeth
-        for (let i = 0; i < 4; i++) {
-            const toothGeo = new THREE.ConeGeometry(0.007, 0.015 + Math.random() * 0.008, 4);
-            const tooth = new THREE.Mesh(toothGeo, teethMat);
-            tooth.position.set(-0.03 + i * 0.02, -0.11, 0.155);
-            if (Math.random() > 0.6) tooth.visible = false;
-            group.add(tooth);
-        }
-
-        // Jaw (lower, slightly open)
-        const jawGeo = new THREE.BoxGeometry(0.14, 0.04, 0.08);
+        // Jaw/chin (human-like)
+        const jawGeo = new THREE.SphereGeometry(0.045, 10, 10);
         const jaw = new THREE.Mesh(jawGeo, skinMat);
-        jaw.position.set(0, -0.12, 0.1);
+        jaw.position.set(0, -0.09, 0.05);
+        jaw.scale.set(1.5, 0.8, 1.2);
         jaw.userData.isJaw = true;
         group.userData.jaw = jaw;
 
-        // Torn cheek wound
-        const woundGeo = new THREE.SphereGeometry(0.03, 6, 6);
-        const cheekWound = new THREE.Mesh(woundGeo, woundMat);
-        cheekWound.position.set(-0.12, -0.02, 0.1);
-        cheekWound.scale.set(1.5, 1, 0.5);
+        // Lower jaw for animation
+        const lowerJawGeo = new THREE.BoxGeometry(0.08, 0.02, 0.04);
+        const lowerJaw = new THREE.Mesh(lowerJawGeo, skinMat);
+        lowerJaw.position.set(0, -0.085, 0.08);
 
-        // Blood drip from mouth
-        const bloodDripGeo = new THREE.CylinderGeometry(0.008, 0.003, 0.04, 6);
+        // Ears (more human-like)
+        const earGeo = new THREE.SphereGeometry(0.025, 8, 8);
+        const leftEar = new THREE.Mesh(earGeo, skinMat);
+        leftEar.position.set(-0.115, 0, 0);
+        leftEar.scale.set(0.4, 1.2, 0.8);
+
+        const rightEar = new THREE.Mesh(earGeo, skinMat);
+        rightEar.position.set(0.115, 0, 0);
+        rightEar.scale.set(0.4, 1.2, 0.8);
+
+        // Torn ear detail
+        const tornEarGeo = new THREE.SphereGeometry(0.015, 6, 6);
+        const tornEar = new THREE.Mesh(tornEarGeo, woundMat);
+        tornEar.position.set(0.12, 0.02, 0);
+
+        // Neck (thicker, more human proportions)
+        const neckGeo = new THREE.CylinderGeometry(0.055, 0.065, 0.12, 10);
+        const neck = new THREE.Mesh(neckGeo, skinMat);
+        neck.position.set(0, -0.17, -0.01);
+
+        // Neck muscles/tendons visible
+        const tendonGeo = new THREE.CylinderGeometry(0.008, 0.01, 0.1, 6);
+        const leftTendon = new THREE.Mesh(tendonGeo, skinMatDark);
+        leftTendon.position.set(-0.04, -0.16, 0.02);
+        leftTendon.rotation.z = 0.15;
+        const rightTendon = new THREE.Mesh(tendonGeo, skinMatDark);
+        rightTendon.position.set(0.04, -0.16, 0.02);
+        rightTendon.rotation.z = -0.15;
+
+        // Some hair remnants (sparse)
+        const hairMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 1 });
+        for (let i = 0; i < 8; i++) {
+            const hairGeo = new THREE.CylinderGeometry(0.003, 0.001, 0.04 + Math.random() * 0.03, 4);
+            const hair = new THREE.Mesh(hairGeo, hairMat);
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 0.08 + Math.random() * 0.03;
+            hair.position.set(
+                Math.cos(angle) * radius,
+                0.1 + Math.random() * 0.04,
+                Math.sin(angle) * radius * 0.5 - 0.02
+            );
+            hair.rotation.x = Math.random() * 0.5 - 0.25;
+            hair.rotation.z = Math.random() * 0.5 - 0.25;
+            group.add(hair);
+        }
+
+        // Wound/gash on face
+        const gashGeo = new THREE.BoxGeometry(0.015, 0.04, 0.01);
+        const gash = new THREE.Mesh(gashGeo, woundMat);
+        gash.position.set(-0.07, 0, 0.1);
+        gash.rotation.z = 0.3;
+
+        // Blood drip
+        const bloodDripGeo = new THREE.CylinderGeometry(0.004, 0.002, 0.025, 6);
         const bloodMat = new THREE.MeshStandardMaterial({ color: this.BLOOD_COLOR, roughness: 0.3 });
         const bloodDrip = new THREE.Mesh(bloodDripGeo, bloodMat);
-        bloodDrip.position.set(0.02, -0.14, 0.14);
+        bloodDrip.position.set(-0.07, -0.025, 0.1);
 
-        // Ears (torn/damaged)
-        const earGeo = new THREE.SphereGeometry(0.035, 6, 6);
-        const leftEar = new THREE.Mesh(earGeo, skinMat);
-        leftEar.position.set(-0.17, 0, 0);
-        leftEar.scale.set(0.5, 1, 0.8);
-
-        // Right ear missing part
-        const rightEar = new THREE.Mesh(earGeo, woundMat);
-        rightEar.position.set(0.17, 0.02, 0);
-        rightEar.scale.set(0.3, 0.6, 0.5);
-
-        // Exposed skull patch
-        const skullPatchGeo = new THREE.SphereGeometry(0.05, 8, 8);
-        const boneMat = new THREE.MeshStandardMaterial({ color: this.BONE_COLOR, roughness: 0.7 });
-        const skullPatch = new THREE.Mesh(skullPatchGeo, boneMat);
-        skullPatch.position.set(-0.1, 0.15, 0.02);
-        skullPatch.scale.set(1, 0.6, 0.4);
-
-        // Neck (with visible tendons)
-        const neckGeo = new THREE.CylinderGeometry(0.07, 0.1, 0.14, 8);
-        const neck = new THREE.Mesh(neckGeo, skinMat);
-        neck.position.set(0, -0.22, 0);
-
-        // Neck wound
-        const neckWoundGeo = new THREE.BoxGeometry(0.04, 0.03, 0.02);
-        const neckWound = new THREE.Mesh(neckWoundGeo, woundMat);
-        neckWound.position.set(0.05, -0.18, 0.06);
-
-        group.add(head, skullBump, brow, leftSocket, rightSocket, leftEye, rightEye,
-                  nose, mouth, jaw, cheekWound, bloodDrip, leftEar, rightEar,
-                  skullPatch, neck, neckWound);
+        group.add(head, forehead, leftCheek, rightCheek, brow,
+                  leftSocket, rightSocket, leftEyeWhite, rightEyeWhite, leftEye, rightEye,
+                  noseBridge, noseTip, leftNostril, rightNostril,
+                  upperLip, mouth, jaw, lowerJaw,
+                  leftEar, rightEar, tornEar,
+                  neck, leftTendon, rightTendon,
+                  gash, bloodDrip);
 
         return group;
     }
 
     /**
-     * Create zombie torso with torn clothing
+     * Create zombie torso with torn clothing - more human-like proportions
      */
     static createTorso() {
         const group = new THREE.Group();
@@ -252,49 +316,107 @@ export class ProceduralZombie {
             roughness: 0.9
         });
 
-        // Main torso (chest)
-        const chestGeo = new THREE.BoxGeometry(0.45, 0.5, 0.22);
-        const chest = new THREE.Mesh(chestGeo, shirtMat);
+        const skinMatDark = new THREE.MeshStandardMaterial({
+            color: this.SKIN_COLOR_ALT,
+            roughness: 0.95
+        });
 
-        // Belly (slightly protruding)
-        const bellyGeo = new THREE.SphereGeometry(0.18, 8, 8);
+        // Upper chest (broader, more human)
+        const upperChestGeo = new THREE.BoxGeometry(0.38, 0.22, 0.18);
+        const upperChest = new THREE.Mesh(upperChestGeo, shirtMat);
+        upperChest.position.set(0, 0.1, 0);
+
+        // Ribcage shape
+        const ribcageGeo = new THREE.CylinderGeometry(0.16, 0.14, 0.25, 12);
+        const ribcage = new THREE.Mesh(ribcageGeo, shirtMat);
+        ribcage.position.set(0, -0.05, 0);
+
+        // Collarbones visible
+        const collarboneGeo = new THREE.CylinderGeometry(0.012, 0.015, 0.15, 6);
+        const leftCollarbone = new THREE.Mesh(collarboneGeo, skinMat);
+        leftCollarbone.position.set(-0.1, 0.2, 0.08);
+        leftCollarbone.rotation.z = -0.5;
+        leftCollarbone.rotation.x = 0.2;
+
+        const rightCollarbone = new THREE.Mesh(collarboneGeo, skinMat);
+        rightCollarbone.position.set(0.1, 0.2, 0.08);
+        rightCollarbone.rotation.z = 0.5;
+        rightCollarbone.rotation.x = 0.2;
+
+        // Belly/abdomen (slimmer, more human)
+        const bellyGeo = new THREE.CylinderGeometry(0.12, 0.14, 0.18, 10);
         const belly = new THREE.Mesh(bellyGeo, shirtMat);
-        belly.position.set(0, -0.2, 0.05);
-        belly.scale.set(1.2, 0.8, 0.8);
+        belly.position.set(0, -0.2, 0);
 
         // Exposed skin patches (torn shirt effect)
-        const patchGeo = new THREE.PlaneGeometry(0.1, 0.15);
+        const patchGeo = new THREE.PlaneGeometry(0.08, 0.1);
         const patch1 = new THREE.Mesh(patchGeo, skinMat);
-        patch1.position.set(0.1, 0.1, 0.115);
+        patch1.position.set(0.08, 0.05, 0.1);
 
-        const patch2 = new THREE.Mesh(patchGeo, skinMat);
-        patch2.position.set(-0.12, -0.05, 0.115);
-        patch2.rotation.z = 0.3;
+        const patch2 = new THREE.Mesh(patchGeo, skinMatDark);
+        patch2.position.set(-0.1, -0.1, 0.1);
+        patch2.rotation.z = 0.2;
 
-        // Shoulders
-        const shoulderGeo = new THREE.SphereGeometry(0.08, 8, 8);
+        // Visible ribs through shirt (gaunt look)
+        for (let i = 0; i < 4; i++) {
+            const ribGeo = new THREE.CylinderGeometry(0.008, 0.01, 0.12, 6);
+            const rib = new THREE.Mesh(ribGeo, skinMatDark);
+            rib.position.set(0.06, -0.02 - i * 0.05, 0.095);
+            rib.rotation.z = Math.PI / 2;
+            rib.rotation.y = 0.3;
+            group.add(rib);
+        }
+
+        // Shoulders (more anatomical)
+        const shoulderGeo = new THREE.SphereGeometry(0.06, 10, 10);
         const leftShoulder = new THREE.Mesh(shoulderGeo, shirtMat);
-        leftShoulder.position.set(-0.25, 0.2, 0);
+        leftShoulder.position.set(-0.2, 0.18, 0);
+        leftShoulder.scale.set(1.2, 0.8, 1);
 
-        const rightShoulder = new THREE.Mesh(shoulderGeo, shirtMat);
-        rightShoulder.position.set(0.25, 0.2, 0);
+        const rightShoulder = new THREE.Mesh(shoulderGeo.clone(), shirtMat);
+        rightShoulder.position.set(0.2, 0.18, 0);
+        rightShoulder.scale.set(1.2, 0.8, 1);
 
-        // Hips/belt area
-        const hipsGeo = new THREE.BoxGeometry(0.4, 0.15, 0.2);
+        // Deltoid muscles
+        const deltoidGeo = new THREE.SphereGeometry(0.045, 8, 8);
+        const leftDeltoid = new THREE.Mesh(deltoidGeo, shirtMat);
+        leftDeltoid.position.set(-0.22, 0.14, 0.02);
+
+        const rightDeltoid = new THREE.Mesh(deltoidGeo, shirtMat);
+        rightDeltoid.position.set(0.22, 0.14, 0.02);
+
+        // Waist/hip area (pants)
+        const waistGeo = new THREE.CylinderGeometry(0.13, 0.14, 0.12, 10);
         const hipsMat = new THREE.MeshStandardMaterial({
             color: this.CLOTH_DARK,
             roughness: 0.9
         });
-        const hips = new THREE.Mesh(hipsGeo, hipsMat);
-        hips.position.set(0, -0.35, 0);
+        const waist = new THREE.Mesh(waistGeo, hipsMat);
+        waist.position.set(0, -0.35, 0);
 
-        group.add(chest, belly, patch1, patch2, leftShoulder, rightShoulder, hips);
+        // Belt
+        const beltGeo = new THREE.TorusGeometry(0.135, 0.015, 8, 20);
+        const beltMat = new THREE.MeshStandardMaterial({ color: 0x2a1a0a, roughness: 0.7 });
+        const belt = new THREE.Mesh(beltGeo, beltMat);
+        belt.rotation.x = Math.PI / 2;
+        belt.position.set(0, -0.28, 0);
+
+        // Belt buckle
+        const buckleGeo = new THREE.BoxGeometry(0.04, 0.03, 0.01);
+        const buckleMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.8 });
+        const buckle = new THREE.Mesh(buckleGeo, buckleMat);
+        buckle.position.set(0, -0.28, 0.14);
+
+        group.add(upperChest, ribcage, leftCollarbone, rightCollarbone,
+                  belly, patch1, patch2,
+                  leftShoulder, rightShoulder, leftDeltoid, rightDeltoid,
+                  waist, belt, buckle);
 
         return group;
     }
 
     /**
-     * Create zombie arm (left arm, right is mirrored)
+     * Create zombie arm (left arm, right is mirrored) - more human proportions
      */
     static createArm() {
         const group = new THREE.Group();
@@ -304,57 +426,124 @@ export class ProceduralZombie {
             roughness: 0.9
         });
 
+        const skinMatDark = new THREE.MeshStandardMaterial({
+            color: this.SKIN_COLOR_ALT,
+            roughness: 0.95
+        });
+
         const shirtMat = new THREE.MeshStandardMaterial({
             color: this.CLOTH_TORN,
             roughness: 0.95
         });
 
-        // Upper arm (with torn sleeve)
-        const upperArmGeo = new THREE.CylinderGeometry(0.055, 0.05, 0.28, 8);
+        // Upper arm with bicep/tricep shape
+        const upperArmGeo = new THREE.CylinderGeometry(0.045, 0.04, 0.24, 10);
         const upperArm = new THREE.Mesh(upperArmGeo, shirtMat);
-        upperArm.position.set(0, -0.14, 0);
+        upperArm.position.set(0, -0.12, 0);
 
-        // Elbow joint
-        const elbowGeo = new THREE.SphereGeometry(0.05, 8, 8);
+        // Bicep muscle bulge
+        const bicepGeo = new THREE.SphereGeometry(0.035, 8, 8);
+        const bicep = new THREE.Mesh(bicepGeo, shirtMat);
+        bicep.position.set(0, -0.08, 0.025);
+        bicep.scale.set(1, 1.5, 0.8);
+
+        // Elbow joint (more anatomical)
+        const elbowGeo = new THREE.SphereGeometry(0.038, 10, 10);
         const elbow = new THREE.Mesh(elbowGeo, skinMat);
-        elbow.position.set(0, -0.3, 0);
+        elbow.position.set(0, -0.26, 0);
 
-        // Forearm (exposed skin)
-        const forearmGeo = new THREE.CylinderGeometry(0.045, 0.04, 0.25, 8);
+        // Elbow bone visible
+        const elbowBoneGeo = new THREE.SphereGeometry(0.018, 6, 6);
+        const elbowBone = new THREE.Mesh(elbowBoneGeo, skinMatDark);
+        elbowBone.position.set(0, -0.26, -0.03);
+
+        // Forearm (exposed skin with muscle definition)
+        const forearmGeo = new THREE.CylinderGeometry(0.038, 0.032, 0.22, 10);
         const forearm = new THREE.Mesh(forearmGeo, skinMat);
-        forearm.position.set(0, -0.45, 0);
+        forearm.position.set(0, -0.4, 0);
 
-        // Wrist
-        const wristGeo = new THREE.SphereGeometry(0.035, 6, 6);
+        // Forearm muscle
+        const forearmMuscleGeo = new THREE.SphereGeometry(0.025, 6, 6);
+        const forearmMuscle = new THREE.Mesh(forearmMuscleGeo, skinMat);
+        forearmMuscle.position.set(0, -0.32, 0.02);
+        forearmMuscle.scale.set(1, 1.8, 0.7);
+
+        // Visible veins on forearm
+        const veinGeo = new THREE.CylinderGeometry(0.004, 0.003, 0.15, 4);
+        const vein = new THREE.Mesh(veinGeo, skinMatDark);
+        vein.position.set(0.02, -0.38, 0.03);
+        vein.rotation.z = 0.1;
+
+        // Wrist (slimmer)
+        const wristGeo = new THREE.CylinderGeometry(0.028, 0.03, 0.05, 8);
         const wrist = new THREE.Mesh(wristGeo, skinMat);
-        wrist.position.set(0, -0.6, 0);
+        wrist.position.set(0, -0.54, 0);
 
-        // Hand (claw-like)
-        const handGeo = new THREE.BoxGeometry(0.07, 0.1, 0.03);
-        const hand = new THREE.Mesh(handGeo, skinMat);
-        hand.position.set(0, -0.7, 0);
+        // Hand (more human, slightly clawed)
+        const palmGeo = new THREE.BoxGeometry(0.06, 0.07, 0.025);
+        const palm = new THREE.Mesh(palmGeo, skinMat);
+        palm.position.set(0, -0.61, 0);
 
-        // Fingers (clawed)
-        const fingerGeo = new THREE.CylinderGeometry(0.008, 0.005, 0.06, 4);
+        // Knuckles
+        const knuckleGeo = new THREE.SphereGeometry(0.012, 6, 6);
         for (let i = 0; i < 4; i++) {
-            const finger = new THREE.Mesh(fingerGeo, skinMat);
-            finger.position.set(-0.022 + i * 0.015, -0.78, 0);
-            finger.rotation.x = 0.3; // Curved like claws
-            group.add(finger);
+            const knuckle = new THREE.Mesh(knuckleGeo, skinMat);
+            knuckle.position.set(-0.02 + i * 0.014, -0.65, 0.012);
+            group.add(knuckle);
+        }
+
+        // Fingers (more human proportions, slightly curled)
+        for (let i = 0; i < 4; i++) {
+            const fingerGroup = new THREE.Group();
+
+            // Finger base
+            const finger1Geo = new THREE.CylinderGeometry(0.009, 0.008, 0.035, 6);
+            const finger1 = new THREE.Mesh(finger1Geo, skinMat);
+            finger1.position.y = -0.018;
+
+            // Finger middle
+            const finger2Geo = new THREE.CylinderGeometry(0.008, 0.007, 0.028, 6);
+            const finger2 = new THREE.Mesh(finger2Geo, skinMat);
+            finger2.position.y = -0.048;
+            finger2.rotation.x = 0.2;
+
+            // Finger tip
+            const finger3Geo = new THREE.CylinderGeometry(0.006, 0.005, 0.022, 6);
+            const finger3 = new THREE.Mesh(finger3Geo, skinMat);
+            finger3.position.y = -0.072;
+            finger3.rotation.x = 0.3;
+
+            // Fingernail (dirty/broken)
+            const nailGeo = new THREE.BoxGeometry(0.008, 0.012, 0.003);
+            const nailMat = new THREE.MeshStandardMaterial({ color: 0x3a3a2a, roughness: 0.6 });
+            const nail = new THREE.Mesh(nailGeo, nailMat);
+            nail.position.set(0, -0.082, 0.006);
+
+            fingerGroup.add(finger1, finger2, finger3, nail);
+            fingerGroup.position.set(-0.02 + i * 0.014, -0.65, 0);
+            fingerGroup.rotation.x = 0.15; // Slight curl
+            group.add(fingerGroup);
         }
 
         // Thumb
-        const thumb = new THREE.Mesh(fingerGeo, skinMat);
-        thumb.position.set(0.04, -0.72, 0.015);
-        thumb.rotation.z = -0.8;
+        const thumbGroup = new THREE.Group();
+        const thumb1Geo = new THREE.CylinderGeometry(0.01, 0.009, 0.03, 6);
+        const thumb1 = new THREE.Mesh(thumb1Geo, skinMat);
+        const thumb2Geo = new THREE.CylinderGeometry(0.009, 0.007, 0.025, 6);
+        const thumb2 = new THREE.Mesh(thumb2Geo, skinMat);
+        thumb2.position.y = -0.028;
+        thumbGroup.add(thumb1, thumb2);
+        thumbGroup.position.set(0.038, -0.6, 0.01);
+        thumbGroup.rotation.z = -0.7;
+        thumbGroup.rotation.x = 0.3;
 
-        group.add(upperArm, elbow, forearm, wrist, hand, thumb);
+        group.add(upperArm, bicep, elbow, elbowBone, forearm, forearmMuscle, vein, wrist, palm, thumbGroup);
 
         return group;
     }
 
     /**
-     * Create zombie leg
+     * Create zombie leg - more human proportions
      */
     static createLeg() {
         const group = new THREE.Group();
@@ -374,32 +563,76 @@ export class ProceduralZombie {
             roughness: 0.95
         });
 
-        // Thigh
-        const thighGeo = new THREE.CylinderGeometry(0.075, 0.065, 0.38, 8);
+        // Thigh (with muscle definition)
+        const thighGeo = new THREE.CylinderGeometry(0.068, 0.055, 0.35, 12);
         const thigh = new THREE.Mesh(thighGeo, pantsMat);
         thigh.position.set(0, 0, 0);
 
-        // Knee
-        const kneeGeo = new THREE.SphereGeometry(0.055, 8, 8);
+        // Quadricep muscle bulge
+        const quadGeo = new THREE.SphereGeometry(0.04, 8, 8);
+        const quad = new THREE.Mesh(quadGeo, pantsMat);
+        quad.position.set(0, 0.05, 0.035);
+        quad.scale.set(1.2, 1.8, 0.7);
+
+        // Knee cap (more detailed)
+        const kneeGeo = new THREE.SphereGeometry(0.045, 10, 10);
         const knee = new THREE.Mesh(kneeGeo, pantsMat);
-        knee.position.set(0, -0.22, 0.02);
+        knee.position.set(0, -0.2, 0.02);
 
-        // Shin (some pants, some exposed)
-        const shinGeo = new THREE.CylinderGeometry(0.055, 0.045, 0.35, 8);
+        // Kneecap detail
+        const kneecapGeo = new THREE.SphereGeometry(0.025, 8, 8);
+        const kneecap = new THREE.Mesh(kneecapGeo, pantsMat);
+        kneecap.position.set(0, -0.2, 0.045);
+        kneecap.scale.set(1.2, 1, 0.6);
+
+        // Shin/calf (with muscle)
+        const shinGeo = new THREE.CylinderGeometry(0.048, 0.038, 0.32, 10);
         const shin = new THREE.Mesh(shinGeo, pantsMat);
-        shin.position.set(0, -0.42, 0);
+        shin.position.set(0, -0.38, 0);
 
-        // Ankle
-        const ankleGeo = new THREE.SphereGeometry(0.04, 6, 6);
+        // Calf muscle
+        const calfGeo = new THREE.SphereGeometry(0.035, 8, 8);
+        const calf = new THREE.Mesh(calfGeo, pantsMat);
+        calf.position.set(0, -0.3, -0.025);
+        calf.scale.set(0.9, 1.8, 1);
+
+        // Ankle (exposed skin)
+        const ankleGeo = new THREE.CylinderGeometry(0.032, 0.035, 0.06, 8);
         const ankle = new THREE.Mesh(ankleGeo, skinMat);
-        ankle.position.set(0, -0.62, 0);
+        ankle.position.set(0, -0.56, 0);
 
-        // Foot/shoe
-        const footGeo = new THREE.BoxGeometry(0.08, 0.05, 0.15);
-        const foot = new THREE.Mesh(footGeo, shoeMat);
-        foot.position.set(0, -0.67, 0.03);
+        // Ankle bone visible
+        const ankleBoneGeo = new THREE.SphereGeometry(0.015, 6, 6);
+        const leftAnkleBone = new THREE.Mesh(ankleBoneGeo, skinMat);
+        leftAnkleBone.position.set(-0.035, -0.55, 0);
+        const rightAnkleBone = new THREE.Mesh(ankleBoneGeo, skinMat);
+        rightAnkleBone.position.set(0.035, -0.55, 0);
 
-        group.add(thigh, knee, shin, ankle, foot);
+        // Foot/shoe (more detailed)
+        const footBaseGeo = new THREE.BoxGeometry(0.08, 0.04, 0.14);
+        const footBase = new THREE.Mesh(footBaseGeo, shoeMat);
+        footBase.position.set(0, -0.61, 0.02);
+
+        // Shoe toe area
+        const toeGeo = new THREE.SphereGeometry(0.04, 8, 8);
+        const toe = new THREE.Mesh(toeGeo, shoeMat);
+        toe.position.set(0, -0.61, 0.08);
+        toe.scale.set(1, 0.5, 1.2);
+
+        // Shoe heel
+        const heelGeo = new THREE.BoxGeometry(0.06, 0.02, 0.04);
+        const heel = new THREE.Mesh(heelGeo, shoeMat);
+        heel.position.set(0, -0.64, -0.04);
+
+        // Shoe sole
+        const soleGeo = new THREE.BoxGeometry(0.085, 0.015, 0.16);
+        const soleMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 1 });
+        const sole = new THREE.Mesh(soleGeo, soleMat);
+        sole.position.set(0, -0.65, 0.02);
+
+        group.add(thigh, quad, knee, kneecap, shin, calf, ankle,
+                  leftAnkleBone, rightAnkleBone,
+                  footBase, toe, heel, sole);
 
         return group;
     }
