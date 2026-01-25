@@ -7,6 +7,10 @@ import { Zombie } from './logic/Zombie';
 import { ZombieEntity } from './entities/ZombieEntity';
 import { WeaponSystem } from './entities/WeaponSystem';
 import { FirstPersonWeaponView } from './entities/FirstPersonWeaponView';
+import audioManager from './audio/AudioManager';
+import { gameStateManager, GameStates } from './ui/GameStateManager';
+import { MapObjects } from './world/MapObjects';
+import { PowerUp } from './entities/items/PowerUp';
 
 // --- Initialization ---
 const scene = new THREE.Scene();
@@ -19,6 +23,9 @@ const container = document.getElementById('game-container');
 container.appendChild(renderer.domElement);
 
 setupEnvironment(scene);
+
+// Generate map objects (cover, obstacles, etc.)
+const mapObjects = MapObjects.generateMapLayout(scene);
 
 // Game State & Systems
 const gameState = new GameState();
@@ -38,6 +45,7 @@ weaponSystem.setCallbacks(
 // Entities
 let playerChar = null;
 const zombies = [];
+const powerUps = [];
 const ZOMBIES_PER_STAGE_BASE = 5;
 let zombiesKilledInStage = 0;
 let lastShotTime = 0;
@@ -267,7 +275,14 @@ camera.position.set(0, 1.6, 5);
 
 // --- Game Logic ---
 
-function startGame(characterClass) {
+async function startGame(characterClass) {
+    // Initialize audio system
+    await audioManager.init();
+    audioManager.startAmbientMusic();
+
+    // Initialize game state manager
+    gameStateManager.startGame();
+
     playerChar = new characterClass();
 
     // Apply character speed to controller
@@ -304,6 +319,11 @@ function resetStage() {
     }
     zombies.length = 0;
 
+    // Play stage clear sound (except for stage 1)
+    if (gameState.currentStage > 1 || gameState.loopCount > 1) {
+        audioManager.playStageClear();
+    }
+
     // Show stage announcement
     showStageAnnouncement(gameState.currentStage, gameState.loopCount);
 
@@ -321,9 +341,36 @@ function spawnZombie() {
     const x = camera.position.x + Math.cos(angle) * distance;
     const z = camera.position.z + Math.sin(angle) * distance;
 
-    const logic = new Zombie(gameState.getEffectiveLevel());
-    const entity = new ZombieEntity(scene, x, z, logic);
+    // Determine zombie type based on stage
+    const zombieType = getZombieType(gameState.currentStage, gameState.loopCount);
+    const logic = new Zombie(gameState.getEffectiveLevel(), zombieType);
+    const entity = new ZombieEntity(scene, x, z, logic, zombieType);
     zombies.push(entity);
+
+    // Play spawn sound occasionally
+    if (Math.random() < 0.3) {
+        audioManager.playZombieSpawn();
+    }
+}
+
+// Get zombie type based on stage progression
+function getZombieType(stage, loop) {
+    const effectiveStage = stage + (loop - 1) * 20;
+    const roll = Math.random() * 100;
+
+    // Boss spawn every 10 stages
+    if (stage % 10 === 0 && zombies.filter(z => z.zombieType === 'boss').length === 0) {
+        if (roll < 10) return 'boss';
+    }
+
+    // Type weights based on stage
+    if (effectiveStage >= 12 && roll < 3) return 'screamer';
+    if (effectiveStage >= 10 && roll < 8) return 'exploder';
+    if (effectiveStage >= 7 && roll < 15) return 'spitter';
+    if (effectiveStage >= 5 && roll < 20) return 'tank';
+    if (effectiveStage >= 3 && roll < 35) return 'runner';
+
+    return 'walker';
 }
 
 function checkStageProgress() {
@@ -352,7 +399,17 @@ function showBloodEffect() {
 
 // Show hit marker when hitting an enemy
 function showHitMarker(isKill = false) {
+    // Record hit for stats
+    gameStateManager.recordHit();
+
     if (isKill) {
+        // Play zombie death sound
+        audioManager.playZombieDeath();
+        audioManager.playHeadshot();
+
+        // Record kill for stats
+        gameStateManager.recordKill();
+
         // Show kill marker
         killMarker.style.opacity = '1';
         killMarker.style.transform = 'translate(-50%, -50%) scale(1.5)';
@@ -365,6 +422,9 @@ function showHitMarker(isKill = false) {
 
         // Add to kill feed
         addKillFeedEntry();
+    } else {
+        // Play hit marker sound
+        audioManager.playHitMarker();
     }
 
     // Show hit marker
@@ -372,6 +432,39 @@ function showHitMarker(isKill = false) {
     setTimeout(() => {
         hitMarker.style.opacity = '0';
     }, 100);
+}
+
+// Show power-up collection message
+function showPowerUpMessage(message) {
+    const popup = document.createElement('div');
+    popup.style.cssText = `
+        position: fixed;
+        top: 40%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-family: 'Arial Black', Arial, sans-serif;
+        font-size: 24px;
+        color: #00ff00;
+        text-shadow: 0 0 10px rgba(0, 255, 0, 0.8), 2px 2px 4px black;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        z-index: 150;
+        pointer-events: none;
+        opacity: 1;
+        transition: all 0.5s ease-out;
+    `;
+    popup.textContent = message;
+    document.body.appendChild(popup);
+
+    // Animate up and fade out
+    setTimeout(() => {
+        popup.style.transform = 'translate(-50%, -100%)';
+        popup.style.opacity = '0';
+    }, 100);
+
+    setTimeout(() => {
+        popup.remove();
+    }, 1000);
 }
 
 // Add entry to kill feed
@@ -481,7 +574,7 @@ function updateMinimap() {
     // In Three.js, camera looks down -Z axis, so we need to adjust
     const cameraDirection = new THREE.Vector3();
     camera.getWorldDirection(cameraDirection);
-    // Get angle from player's view direction (note: atan2(x, z) gives angle from +Z axis)
+    // Get angle from player's view direction (atan2(x, z) gives angle from +Z axis)
     const playerAngle = Math.atan2(cameraDirection.x, cameraDirection.z);
 
     // Draw zombies
@@ -492,11 +585,13 @@ function updateMinimap() {
         const dx = zombie.mesh.position.x - camera.position.x;
         const dz = zombie.mesh.position.z - camera.position.z;
 
-        // Rotate so that forward direction is always "up" on minimap
-        // We rotate by negative playerAngle to align player's forward with minimap's up
-        const cos = Math.cos(-playerAngle);
-        const sin = Math.sin(-playerAngle);
-        const rotatedX = dx * cos - dz * sin;  // Left-right on minimap
+        // Rotate to align player's forward direction with minimap's "up" (+Y)
+        // Using rotation matrix where:
+        // - rotatedX = right component (positive = zombie to player's right)
+        // - rotatedZ = forward component (positive = zombie in front of player)
+        const cos = Math.cos(playerAngle);
+        const sin = Math.sin(playerAngle);
+        const rotatedX = dz * sin - dx * cos;  // Right-left on minimap
         const rotatedZ = dx * sin + dz * cos;  // Forward-back on minimap
 
         // Scale to minimap coordinates
@@ -577,6 +672,8 @@ const handleFire = () => {
     if (!playerChar) return;
     // Allow firing if locked (PC) or if mobile (Touch)
     if (!controller.isLocked && !isMobile) return;
+    // Don't fire if game is paused
+    if (!gameStateManager.isPlaying()) return;
 
     const now = Date.now();
     // Simple fire rate limit (e.g., 500ms for Knight, 100ms for MachineGun)
@@ -587,6 +684,30 @@ const handleFire = () => {
     if (now - lastShotTime > fireRate) {
         weaponSystem.fire(playerChar, camera, zombies);
         lastShotTime = now;
+
+        // Record shot for stats
+        gameStateManager.recordShot();
+
+        // Play weapon sound based on character type
+        switch (playerChar.type) {
+            case 'Knight':
+                audioManager.playSwordSwing();
+                break;
+            case 'Sniper':
+                audioManager.playGunshot('sniper');
+                break;
+            case 'MachineGun':
+                audioManager.playGunshot('machinegun');
+                break;
+            case 'Archer':
+                audioManager.playBowRelease();
+                break;
+            case 'Wizard':
+                audioManager.playMagicCast();
+                break;
+            default:
+                audioManager.playGunshot('rifle');
+        }
 
         // Screen shake based on weapon type
         let shakeAmount = 0.01;
@@ -636,7 +757,13 @@ function animate() {
 
     const delta = clock.getDelta();
 
-    if (playerChar && !playerChar.isDead) {
+    // Skip updates if paused
+    if (gameStateManager.isPaused()) {
+        renderer.render(scene, camera);
+        return;
+    }
+
+    if (playerChar && !playerChar.isDead && gameStateManager.isPlaying()) {
         controller.update(delta);
         weaponSystem.update(delta, zombies);
 
@@ -651,7 +778,7 @@ function animate() {
         // Zombie Logic
         for (let i = zombies.length - 1; i >= 0; i--) {
             const z = zombies[i];
-            z.update(delta, camera.position);
+            z.update(delta, camera.position, zombies);
 
             // Player Collision (Damage) - use zombie center position
             const zombieCenter = z.mesh.position.clone();
@@ -661,8 +788,16 @@ function animate() {
             if (horizontalDist < 1.5) {
                 const now = Date.now();
                 if (now - lastPlayerDamageTime > PLAYER_IFRAME_MS) {
-                    playerChar.hp -= z.logic.damage;
+                    // Use takeDamage method which applies defense
+                    const actualDamage = playerChar.takeDamage(z.logic.damage);
                     lastPlayerDamageTime = now;
+
+                    // Record damage taken for stats
+                    gameStateManager.recordDamageTaken(actualDamage);
+
+                    // Play hurt sound and zombie attack sound
+                    audioManager.playPlayerHurt();
+                    audioManager.playZombieAttack();
 
                     // Blood splatter effect
                     showBloodEffect();
@@ -670,20 +805,66 @@ function animate() {
                     // Show damage direction indicator
                     showDamageIndicator(z.mesh.position);
 
-                    // Screen shake from damage
-                    triggerScreenShake(0.03);
+                    // Screen shake from damage (more if no shield)
+                    triggerScreenShake(playerChar.shieldActive ? 0.015 : 0.03);
 
-                    if (playerChar.hp <= 0) {
-                        playerChar.hp = 0;
+                    // Start heartbeat if low HP
+                    if (playerChar.hp <= 25 && playerChar.hp > 0) {
+                        audioManager.startHeartbeat();
+                    }
+
+                    if (playerChar.isDead) {
+                        audioManager.stopHeartbeat();
                         gameOver();
                     }
                 }
             }
 
             if (z.isDead) {
+                // Check for power-up drop
+                if (PowerUp.shouldDrop(z.zombieType)) {
+                    const powerUpType = PowerUp.getRandomType();
+                    const powerUp = new PowerUp(
+                        scene,
+                        z.mesh.position.x,
+                        z.mesh.position.z,
+                        powerUpType
+                    );
+                    powerUps.push(powerUp);
+                }
+
                 zombies.splice(i, 1);
                 zombiesKilledInStage++;
                 checkStageProgress();
+            }
+        }
+
+        // Update power-ups
+        for (let i = powerUps.length - 1; i >= 0; i--) {
+            const powerUp = powerUps[i];
+            const result = powerUp.update(delta, camera.position);
+
+            if (result === 'collect') {
+                const collectResult = powerUp.collect(
+                    playerChar,
+                    controller,
+                    zombies,
+                    scene,
+                    audioManager
+                );
+                if (collectResult) {
+                    audioManager.playPickup();
+                    showPowerUpMessage(collectResult.message);
+
+                    // Stop heartbeat if health collected and HP restored
+                    if (collectResult.type === 'HEALTH' && playerChar.hp > 25) {
+                        audioManager.stopHeartbeat();
+                    }
+                }
+                powerUps.splice(i, 1);
+            } else if (result === true) {
+                // Despawned
+                powerUps.splice(i, 1);
             }
         }
 
@@ -704,8 +885,10 @@ function animate() {
 }
 
 function gameOver() {
-    alert("Game Over! You reached Stage " + gameState.currentStage);
-    location.reload();
+    audioManager.stopAmbientMusic();
+    audioManager.stopHeartbeat();
+    playerChar.isDead = true;
+    gameStateManager.gameOver(gameState.currentStage, gameState.loopCount);
 }
 
 // --- Setup UI ---

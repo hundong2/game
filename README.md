@@ -2,6 +2,8 @@
 
 1인칭 슈팅 아케이드 게임 개발 프로젝트 - Kotlin & Android
 
+> 📄 **[PHASE 2 개선 계획서 보기](./PHASE2_PLAN.md)** - FPS 전문가 관점의 상세 개선 로드맵
+
 ## 📋 프로젝트 개요
 한국의 역사적 영웅들이 좀비 떼로부터 조선을 지키는 무한 스테이지 슈팅 아케이드 게임입니다.
 플레이어는 이순신, 이성계 등 역사적 인물을 선택하여, 사방에서 몰려오는 좀비들을 처치하고 스테이지를 돌파하며 성장합니다.
@@ -77,10 +79,90 @@
 - [ ] 최종 코드 리팩토링 및 제출
 
 ## 🛠️ 기술 스택 (Tech Stack)
+
+### Android 버전
 - **Language:** Kotlin 100%
 - **Architecture:** MVVM + Game Loop Pattern
 - **Rendering:** Android Canvas API (Custom View) for Arcade feel
 - **Design Patterns:** Singleton (Manager), Factory (Enemy/Weapon), Strategy (Attack Behavior), Observer (Game Events)
+
+### Web 버전
+- **Language:** JavaScript (ES6+)
+- **Framework:** Three.js (3D 렌더링)
+- **Build Tool:** Vite
+- **Testing:** Vitest + jsdom
+
+---
+
+## 🎮 실행 방법 (How to Run)
+
+### 로컬 개발 환경
+
+```bash
+# 1. 의존성 설치
+npm install
+
+# 2. 개발 서버 실행
+npm run dev
+
+# 3. 브라우저에서 http://localhost:5173 접속
+```
+
+### Docker 실행 방법
+
+```bash
+# 1. Docker 이미지 빌드
+docker build -t zombie-game .
+
+# 2. 컨테이너 실행
+docker run -d -p 10407:80 --name zombie-game zombie-game
+
+# 3. 브라우저에서 http://localhost:10407 접속
+
+# 컨테이너 중지
+docker stop zombie-game
+
+# 컨테이너 삭제
+docker rm zombie-game
+```
+
+### Docker Compose 사용 (선택사항)
+
+`docker-compose.yml` 파일을 생성하여 더 쉽게 관리할 수 있습니다:
+
+```yaml
+version: '3.8'
+services:
+  zombie-game:
+    build: .
+    ports:
+      - "10407:80"
+    restart: unless-stopped
+```
+
+실행:
+```bash
+# 시작
+docker-compose up -d
+
+# 중지
+docker-compose down
+```
+
+---
+
+## 📦 빌드
+
+```bash
+# 프로덕션 빌드
+npm run build
+
+# 빌드 결과 미리보기
+npm run preview
+
+# 테스트 실행
+npm test
+```
 
 ---
 *개발자는 이 문서를 기준으로 개발을 진행합니다.*

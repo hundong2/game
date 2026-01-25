@@ -18,19 +18,88 @@ export class ProceduralZombie {
     static BONE_COLOR = 0xe0d8c8;      // Exposed bone
 
     /**
+     * Get type-specific colors
+     */
+    static getTypeColors(zombieType) {
+        const baseColors = {
+            SKIN_COLOR: this.SKIN_COLOR,
+            SKIN_COLOR_ALT: this.SKIN_COLOR_ALT,
+            EYE_COLOR: this.EYE_COLOR,
+            EYE_GLOW: this.EYE_GLOW
+        };
+
+        switch (zombieType) {
+            case 'runner':
+                return {
+                    ...baseColors,
+                    SKIN_COLOR: 0x6b4a3a,
+                    SKIN_COLOR_ALT: 0x5a3a2a,
+                    EYE_COLOR: 0xff6600,
+                    EYE_GLOW: 0xff8833
+                };
+            case 'tank':
+                return {
+                    ...baseColors,
+                    SKIN_COLOR: 0x3a3a4a,
+                    SKIN_COLOR_ALT: 0x2a2a3a,
+                    EYE_COLOR: 0xff0000,
+                    EYE_GLOW: 0xff2222
+                };
+            case 'spitter':
+                return {
+                    ...baseColors,
+                    SKIN_COLOR: 0x4a6b4a,
+                    SKIN_COLOR_ALT: 0x3a5a3a,
+                    EYE_COLOR: 0x00ff00,
+                    EYE_GLOW: 0x33ff33
+                };
+            case 'exploder':
+                return {
+                    ...baseColors,
+                    SKIN_COLOR: 0x8b4a4a,
+                    SKIN_COLOR_ALT: 0x7a3a3a,
+                    EYE_COLOR: 0xff3300,
+                    EYE_GLOW: 0xff5533
+                };
+            case 'screamer':
+                return {
+                    ...baseColors,
+                    SKIN_COLOR: 0x6a5a7a,
+                    SKIN_COLOR_ALT: 0x5a4a6a,
+                    EYE_COLOR: 0xcc00ff,
+                    EYE_GLOW: 0xdd33ff
+                };
+            case 'boss':
+                return {
+                    ...baseColors,
+                    SKIN_COLOR: 0x2a1a2a,
+                    SKIN_COLOR_ALT: 0x1a0a1a,
+                    EYE_COLOR: 0xff00ff,
+                    EYE_GLOW: 0xff33ff
+                };
+            default:
+                return baseColors;
+        }
+    }
+
+    /**
      * Create a complete zombie model
+     * @param {string} zombieType - Type of zombie (walker, runner, tank, etc.)
      * @returns {THREE.Group} Zombie model group with animation references
      */
-    static create() {
+    static create(zombieType = 'walker') {
         const group = new THREE.Group();
 
-        // Create body parts
-        const head = this.createHead();
-        const torso = this.createTorso();
-        const leftArm = this.createArm();
-        const rightArm = this.createArm();
-        const leftLeg = this.createLeg();
-        const rightLeg = this.createLeg();
+        // Get type-specific colors
+        const colors = this.getTypeColors(zombieType);
+
+        // Create body parts with type-specific colors
+        const head = this.createHead(colors);
+        const torso = this.createTorso(colors, zombieType);
+        const leftArm = this.createArm(colors);
+        const rightArm = this.createArm(colors);
+        const leftLeg = this.createLeg(colors);
+        const rightLeg = this.createLeg(colors);
 
         // Position body parts
         head.position.set(0, 1.65, 0);
@@ -48,6 +117,9 @@ export class ProceduralZombie {
         // Add all parts to group
         group.add(head, torso, leftArm, rightArm, leftLeg, rightLeg);
 
+        // Add type-specific visual features
+        this.addTypeFeatures(group, zombieType, colors);
+
         // Store references for animation
         group.userData = {
             head,
@@ -56,6 +128,7 @@ export class ProceduralZombie {
             rightArm,
             leftLeg,
             rightLeg,
+            zombieType,
             // Store original materials for damage flash
             materials: []
         };
@@ -79,19 +152,224 @@ export class ProceduralZombie {
     }
 
     /**
+     * Add type-specific visual features
+     */
+    static addTypeFeatures(group, zombieType, colors) {
+        switch (zombieType) {
+            case 'runner':
+                // Longer, leaner limbs effect (handled by animation)
+                break;
+            case 'tank':
+                // Add muscle bulges
+                this.addTankFeatures(group, colors);
+                break;
+            case 'spitter':
+                // Add bloated cheeks/neck
+                this.addSpitterFeatures(group, colors);
+                break;
+            case 'exploder':
+                // Add bloated belly with glow
+                this.addExploderFeatures(group, colors);
+                break;
+            case 'screamer':
+                // Add larger mouth
+                this.addScreamerFeatures(group, colors);
+                break;
+            case 'boss':
+                // Add intimidating features
+                this.addBossFeatures(group, colors);
+                break;
+        }
+    }
+
+    static addTankFeatures(group, colors) {
+        const muscleMat = new THREE.MeshStandardMaterial({
+            color: colors.SKIN_COLOR,
+            roughness: 0.8
+        });
+
+        // Extra shoulder bulk
+        const shoulderGeo = new THREE.SphereGeometry(0.12, 10, 10);
+        const leftShoulder = new THREE.Mesh(shoulderGeo, muscleMat);
+        leftShoulder.position.set(-0.35, 1.5, 0);
+        const rightShoulder = new THREE.Mesh(shoulderGeo, muscleMat);
+        rightShoulder.position.set(0.35, 1.5, 0);
+
+        // Back hump
+        const humpGeo = new THREE.SphereGeometry(0.15, 10, 10);
+        const hump = new THREE.Mesh(humpGeo, muscleMat);
+        hump.position.set(0, 1.4, -0.15);
+        hump.scale.set(1.5, 1, 1);
+
+        group.add(leftShoulder, rightShoulder, hump);
+    }
+
+    static addSpitterFeatures(group, colors) {
+        const bloatMat = new THREE.MeshStandardMaterial({
+            color: 0x5a7a5a,
+            roughness: 0.7,
+            transparent: true,
+            opacity: 0.9
+        });
+
+        // Bloated throat
+        const throatGeo = new THREE.SphereGeometry(0.1, 10, 10);
+        const throat = new THREE.Mesh(throatGeo, bloatMat);
+        throat.position.set(0, 1.45, 0.08);
+        throat.scale.set(0.8, 1.2, 0.8);
+
+        // Dripping acid effect (static geometry)
+        const dripMat = new THREE.MeshStandardMaterial({
+            color: 0x66ff66,
+            emissive: 0x33ff33,
+            emissiveIntensity: 0.3,
+            transparent: true,
+            opacity: 0.7
+        });
+
+        for (let i = 0; i < 3; i++) {
+            const dripGeo = new THREE.CylinderGeometry(0.008, 0.003, 0.05 + Math.random() * 0.05, 6);
+            const drip = new THREE.Mesh(dripGeo, dripMat);
+            drip.position.set(
+                (Math.random() - 0.5) * 0.08,
+                1.55,
+                0.12
+            );
+            group.add(drip);
+        }
+
+        group.add(throat);
+    }
+
+    static addExploderFeatures(group, colors) {
+        const bloatMat = new THREE.MeshStandardMaterial({
+            color: 0xaa4444,
+            emissive: 0xff3333,
+            emissiveIntensity: 0.5,
+            roughness: 0.5,
+            transparent: true,
+            opacity: 0.9
+        });
+
+        // Bloated belly
+        const bellyGeo = new THREE.SphereGeometry(0.25, 16, 16);
+        const belly = new THREE.Mesh(bellyGeo, bloatMat);
+        belly.position.set(0, 1.0, 0.1);
+
+        // Pustules/boils
+        const boilMat = new THREE.MeshStandardMaterial({
+            color: 0xff6666,
+            emissive: 0xff3333,
+            emissiveIntensity: 0.8
+        });
+
+        for (let i = 0; i < 5; i++) {
+            const boilGeo = new THREE.SphereGeometry(0.03 + Math.random() * 0.03, 8, 8);
+            const boil = new THREE.Mesh(boilGeo, boilMat);
+            const angle = Math.random() * Math.PI;
+            const radius = 0.2;
+            boil.position.set(
+                Math.cos(angle) * radius * 0.5,
+                0.9 + Math.random() * 0.2,
+                0.1 + Math.sin(angle) * radius
+            );
+            group.add(boil);
+        }
+
+        group.add(belly);
+    }
+
+    static addScreamerFeatures(group, colors) {
+        const mouthMat = new THREE.MeshStandardMaterial({
+            color: 0x1a0505,
+            roughness: 1
+        });
+
+        // Extended jaw/mouth
+        const jawGeo = new THREE.BoxGeometry(0.1, 0.08, 0.06);
+        const jaw = new THREE.Mesh(jawGeo, mouthMat);
+        jaw.position.set(0, 1.55, 0.12);
+        jaw.rotation.x = 0.3;
+
+        // Aura effect particles (static)
+        const auraMat = new THREE.MeshBasicMaterial({
+            color: 0x9966ff,
+            transparent: true,
+            opacity: 0.3
+        });
+
+        for (let i = 0; i < 8; i++) {
+            const auraGeo = new THREE.SphereGeometry(0.05, 6, 6);
+            const aura = new THREE.Mesh(auraGeo, auraMat);
+            const angle = (i / 8) * Math.PI * 2;
+            aura.position.set(
+                Math.cos(angle) * 0.4,
+                1.2 + Math.sin(i) * 0.2,
+                Math.sin(angle) * 0.4
+            );
+            group.add(aura);
+        }
+
+        group.add(jaw);
+    }
+
+    static addBossFeatures(group, colors) {
+        // Spikes on back
+        const spikeMat = new THREE.MeshStandardMaterial({
+            color: 0x1a0a1a,
+            roughness: 0.6
+        });
+
+        for (let i = 0; i < 5; i++) {
+            const spikeGeo = new THREE.ConeGeometry(0.05, 0.2 + Math.random() * 0.15, 8);
+            const spike = new THREE.Mesh(spikeGeo, spikeMat);
+            spike.position.set(
+                (Math.random() - 0.5) * 0.3,
+                1.3 + i * 0.08,
+                -0.15
+            );
+            spike.rotation.x = -0.5;
+            spike.rotation.z = (Math.random() - 0.5) * 0.3;
+            group.add(spike);
+        }
+
+        // Horns
+        const hornMat = new THREE.MeshStandardMaterial({
+            color: 0x2a1a2a,
+            roughness: 0.5
+        });
+
+        const leftHornGeo = new THREE.ConeGeometry(0.04, 0.2, 8);
+        const leftHorn = new THREE.Mesh(leftHornGeo, hornMat);
+        leftHorn.position.set(-0.1, 1.8, 0);
+        leftHorn.rotation.z = 0.4;
+
+        const rightHorn = new THREE.Mesh(leftHornGeo.clone(), hornMat);
+        rightHorn.position.set(0.1, 1.8, 0);
+        rightHorn.rotation.z = -0.4;
+
+        group.add(leftHorn, rightHorn);
+    }
+
+    /**
      * Create zombie head with realistic human proportions and horrific details
      */
-    static createHead() {
+    static createHead(colors = null) {
         const group = new THREE.Group();
 
+        const skinColor = colors?.SKIN_COLOR || this.SKIN_COLOR;
+        const skinColorAlt = colors?.SKIN_COLOR_ALT || this.SKIN_COLOR_ALT;
+        const eyeColor = colors?.EYE_COLOR || this.EYE_COLOR;
+        const eyeGlow = colors?.EYE_GLOW || this.EYE_GLOW;
+
         const skinMat = new THREE.MeshStandardMaterial({
-            color: this.SKIN_COLOR,
+            color: skinColor,
             roughness: 0.85,
             metalness: 0.05
         });
 
         const skinMatDark = new THREE.MeshStandardMaterial({
-            color: this.SKIN_COLOR_ALT,
+            color: skinColorAlt,
             roughness: 0.9,
             metalness: 0.05
         });
@@ -160,8 +438,8 @@ export class ProceduralZombie {
         // Glowing red pupils
         const pupilGeo = new THREE.SphereGeometry(0.012, 10, 10);
         const eyeMat = new THREE.MeshStandardMaterial({
-            color: this.EYE_COLOR,
-            emissive: this.EYE_GLOW,
+            color: eyeColor,
+            emissive: eyeGlow,
             emissiveIntensity: 1.5
         });
 
@@ -302,8 +580,11 @@ export class ProceduralZombie {
     /**
      * Create zombie torso with torn clothing - more human-like proportions
      */
-    static createTorso() {
+    static createTorso(colors = null, zombieType = 'walker') {
         const group = new THREE.Group();
+
+        const skinColor = colors?.SKIN_COLOR || this.SKIN_COLOR;
+        const skinColorAlt = colors?.SKIN_COLOR_ALT || this.SKIN_COLOR_ALT;
 
         // Shirt material (torn, dirty)
         const shirtMat = new THREE.MeshStandardMaterial({
@@ -312,12 +593,12 @@ export class ProceduralZombie {
         });
 
         const skinMat = new THREE.MeshStandardMaterial({
-            color: this.SKIN_COLOR,
+            color: skinColor,
             roughness: 0.9
         });
 
         const skinMatDark = new THREE.MeshStandardMaterial({
-            color: this.SKIN_COLOR_ALT,
+            color: skinColorAlt,
             roughness: 0.95
         });
 
@@ -418,16 +699,19 @@ export class ProceduralZombie {
     /**
      * Create zombie arm (left arm, right is mirrored) - more human proportions
      */
-    static createArm() {
+    static createArm(colors = null) {
         const group = new THREE.Group();
 
+        const skinColor = colors?.SKIN_COLOR || this.SKIN_COLOR;
+        const skinColorAlt = colors?.SKIN_COLOR_ALT || this.SKIN_COLOR_ALT;
+
         const skinMat = new THREE.MeshStandardMaterial({
-            color: this.SKIN_COLOR,
+            color: skinColor,
             roughness: 0.9
         });
 
         const skinMatDark = new THREE.MeshStandardMaterial({
-            color: this.SKIN_COLOR_ALT,
+            color: skinColorAlt,
             roughness: 0.95
         });
 
@@ -545,8 +829,10 @@ export class ProceduralZombie {
     /**
      * Create zombie leg - more human proportions
      */
-    static createLeg() {
+    static createLeg(colors = null) {
         const group = new THREE.Group();
+
+        const skinColor = colors?.SKIN_COLOR || this.SKIN_COLOR;
 
         const pantsMat = new THREE.MeshStandardMaterial({
             color: this.CLOTH_DARK,
@@ -554,7 +840,7 @@ export class ProceduralZombie {
         });
 
         const skinMat = new THREE.MeshStandardMaterial({
-            color: this.SKIN_COLOR,
+            color: skinColor,
             roughness: 0.9
         });
 
