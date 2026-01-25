@@ -11,6 +11,7 @@ import audioManager from './audio/AudioManager';
 import { gameStateManager, GameStates } from './ui/GameStateManager';
 import { MapObjects } from './world/MapObjects';
 import { PowerUp } from './entities/items/PowerUp';
+import { AbilitySystem } from './abilities/AbilitySystem';
 
 // --- Initialization ---
 const scene = new THREE.Scene();
@@ -52,6 +53,11 @@ let lastShotTime = 0;
 let lastPlayerDamageTime = 0;
 const PLAYER_IFRAME_MS = 500; // 0.5 seconds invulnerability
 const isMobile = 'ontouchstart' in window;
+
+// Ability System
+let abilitySystem = null;
+let isCharging = false;
+let isHoldingFire = false;
 
 // UI Elements
 const hud = document.getElementById('hud');
@@ -291,6 +297,13 @@ async function startGame(characterClass) {
     // Set weapon view based on character type
     fpWeaponView.setWeapon(playerChar.type);
 
+    // Initialize ability system for this character
+    if (abilitySystem) {
+        abilitySystem.dispose();
+    }
+    abilitySystem = new AbilitySystem(scene, camera, playerChar.type);
+    abilitySystem.setAudioManager(audioManager);
+
     // UI Update
     startScreen.style.display = 'none';
     hud.style.display = 'block';
@@ -401,6 +414,11 @@ function showBloodEffect() {
 function showHitMarker(isKill = false) {
     // Record hit for stats
     gameStateManager.recordHit();
+
+    // Add ultimate charge on hit (like Overwatch)
+    if (abilitySystem) {
+        abilitySystem.addUltimateCharge(1);
+    }
 
     if (isKill) {
         // Play zombie death sound
@@ -725,20 +743,124 @@ const handleFire = () => {
     }
 };
 
-// Left click to fire
+// Left click to fire / start charge
 document.addEventListener('mousedown', (e) => {
     if (e.button === 0) { // Left click
+        isHoldingFire = true;
+        // Start charging attack
+        if (abilitySystem && !abilitySystem.ultimateActive) {
+            abilitySystem.startCharge();
+            isCharging = true;
+        }
         handleFire();
     } else if (e.button === 2) { // Right click
-        toggleZoom();
+        // Right click: Ultimate if ready, otherwise zoom for sniper
+        if (abilitySystem && abilitySystem.ultimateReady) {
+            e.preventDefault();
+            abilitySystem.activateUltimate();
+        } else if (playerChar && playerChar.type === 'Sniper') {
+            toggleZoom();
+        }
     }
 });
 
+// Left click release - release charged attack
+document.addEventListener('mouseup', (e) => {
+    if (e.button === 0) { // Left click release
+        isHoldingFire = false;
+        if (isCharging && abilitySystem) {
+            const result = abilitySystem.releaseCharge();
+            if (result) {
+                // Handle charged attack result
+                handleChargedAttack(result);
+            }
+            isCharging = false;
+        }
+    }
+});
+
+// Handle charged attack results
+function handleChargedAttack(result) {
+    if (!result) return;
+
+    // Play appropriate sound
+    switch (playerChar.type) {
+        case 'Wizard':
+            audioManager.playMagicCast();
+            triggerScreenShake(0.05 * result.chargeLevel);
+            break;
+        case 'Archer':
+            audioManager.playBowRelease();
+            triggerScreenShake(0.03 * result.chargeLevel);
+            break;
+        case 'Sniper':
+            audioManager.playGunshot('sniper');
+            triggerScreenShake(0.08 * result.chargeLevel);
+            // Handle railgun hit detection
+            if (result.type === 'railgun') {
+                handleRailgunHit(result);
+            }
+            break;
+        case 'MachineGun':
+            audioManager.playExplosion();
+            triggerScreenShake(0.04 * result.chargeLevel);
+            break;
+        case 'Knight':
+            audioManager.playSwordSwing();
+            triggerScreenShake(0.06 * result.chargeLevel);
+            // Handle heavy slam hit detection
+            if (result.type === 'heavySlam') {
+                handleHeavySlamHit(result);
+            }
+            break;
+    }
+}
+
+// Handle railgun hit (instant hitscan)
+function handleRailgunHit(result) {
+    const raycaster = new THREE.Raycaster(result.origin, result.direction, 0, 100);
+    let penetrateCount = result.penetrateCount;
+
+    for (const zombie of zombies) {
+        if (zombie.isDead || penetrateCount <= 0) continue;
+
+        // Simple distance check along ray
+        const toZombie = zombie.mesh.position.clone().sub(result.origin);
+        const dot = toZombie.dot(result.direction);
+        if (dot > 0 && dot < 100) {
+            const closestPoint = result.origin.clone().add(result.direction.clone().multiplyScalar(dot));
+            const dist = closestPoint.distanceTo(zombie.mesh.position);
+            if (dist < 1.5) {
+                zombie.takeDamage(result.damage);
+                showHitMarker(zombie.isDead);
+                penetrateCount--;
+            }
+        }
+    }
+}
+
+// Handle heavy slam hit (AOE)
+function handleHeavySlamHit(result) {
+    for (const zombie of zombies) {
+        if (zombie.isDead) continue;
+        const dx = zombie.mesh.position.x - result.position.x;
+        const dz = zombie.mesh.position.z - result.position.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist < result.radius) {
+            const falloff = 1 - (dist / result.radius) * 0.5;
+            zombie.takeDamage(result.damage * falloff);
+            showHitMarker(zombie.isDead);
+
+            // Knockback effect
+            const knockDir = new THREE.Vector3(dx, 0, dz).normalize();
+            zombie.mesh.position.add(knockDir.multiplyScalar(result.knockbackForce * (1 - dist / result.radius)));
+        }
+    }
+}
+
 // Prevent context menu on right click
 document.addEventListener('contextmenu', (e) => {
-    if (playerChar && playerChar.type === 'Sniper') {
-        e.preventDefault();
-    }
+    e.preventDefault();
 });
 
 document.addEventListener('touchstart', (e) => {
@@ -766,6 +888,24 @@ function animate() {
     if (playerChar && !playerChar.isDead && gameStateManager.isPlaying()) {
         controller.update(delta);
         weaponSystem.update(delta, zombies);
+
+        // Update ability system
+        if (abilitySystem) {
+            abilitySystem.update(delta, camera.position, zombies);
+
+            // Apply berserker rage stats for Knight
+            const berserkerStats = abilitySystem.getBerserkerStats();
+            if (berserkerStats) {
+                playerChar.damageMultiplier = berserkerStats.damageMultiplier;
+                if (berserkerStats.invincible) {
+                    playerChar.damageReduction = 1.0; // Full damage reduction
+                }
+            } else if (playerChar.type === 'Knight' && !playerChar.shieldActive) {
+                // Reset stats when not in berserker mode (unless shield active)
+                playerChar.damageMultiplier = 1.0;
+                playerChar.damageReduction = 0;
+            }
+        }
 
         // Update screen shake
         updateScreenShake(delta);
