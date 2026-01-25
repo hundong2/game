@@ -751,6 +751,11 @@ document.addEventListener('mousedown', (e) => {
         if (abilitySystem && !abilitySystem.ultimateActive) {
             abilitySystem.startCharge();
             isCharging = true;
+
+            // Start bow draw animation for Archer
+            if (playerChar && playerChar.type === 'Archer') {
+                fpWeaponView.startBowDraw();
+            }
         }
         handleFire();
     } else if (e.button === 2) { // Right click
@@ -910,10 +915,10 @@ function animate() {
         // Update screen shake
         updateScreenShake(delta);
 
-        // Update first person weapon view with movement state
+        // Update first person weapon view with movement and charging state
         const isMoving = controller.moveForward || controller.moveBackward ||
                          controller.moveLeft || controller.moveRight;
-        fpWeaponView.update(delta, { isMoving });
+        fpWeaponView.update(delta, { isMoving, isCharging });
 
         // Zombie Logic
         for (let i = zombies.length - 1; i >= 0; i--) {
