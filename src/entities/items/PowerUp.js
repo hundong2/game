@@ -23,10 +23,35 @@ export const POWERUP_TYPES = {
         effect: (player, controller) => {
             const originalSpeed = controller.baseSpeed;
             controller.setSpeed(originalSpeed * 1.5);
+
+            // Speed visual indicator
+            let speedOverlay = document.getElementById('speed-overlay');
+            if (!speedOverlay) {
+                speedOverlay = document.createElement('div');
+                speedOverlay.id = 'speed-overlay';
+                speedOverlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    pointer-events: none;
+                    z-index: 40;
+                    border: 3px solid rgba(0, 255, 255, 0.5);
+                    box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.2);
+                    border-radius: 10px;
+                    box-sizing: border-box;
+                `;
+                document.body.appendChild(speedOverlay);
+            }
+            speedOverlay.style.display = 'block';
+
             return 'Speed +50%';
         },
         onExpire: (player, controller) => {
             controller.setSpeed(controller.baseSpeed);
+            const speedOverlay = document.getElementById('speed-overlay');
+            if (speedOverlay) speedOverlay.style.display = 'none';
         },
         duration: 10000, // 10 seconds
         dropChance: 0.05
@@ -37,10 +62,35 @@ export const POWERUP_TYPES = {
         glowColor: 0xff3333,
         effect: (player) => {
             player.damageMultiplier = 2.0;
+
+            // Damage visual indicator
+            let damageOverlay = document.getElementById('damage-overlay');
+            if (!damageOverlay) {
+                damageOverlay = document.createElement('div');
+                damageOverlay.id = 'damage-overlay';
+                damageOverlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    pointer-events: none;
+                    z-index: 40;
+                    border: 3px solid rgba(255, 50, 50, 0.5);
+                    box-shadow: inset 0 0 20px rgba(255, 50, 50, 0.2);
+                    border-radius: 10px;
+                    box-sizing: border-box;
+                `;
+                document.body.appendChild(damageOverlay);
+            }
+            damageOverlay.style.display = 'block';
+
             return 'Damage x2';
         },
         onExpire: (player) => {
             player.damageMultiplier = 1.0;
+            const damageOverlay = document.getElementById('damage-overlay');
+            if (damageOverlay) damageOverlay.style.display = 'none';
         },
         duration: 10000, // 10 seconds
         dropChance: 0.05
@@ -52,11 +102,40 @@ export const POWERUP_TYPES = {
         effect: (player) => {
             player.shieldActive = true;
             player.damageReduction = 0.5;
-            return 'Shield Active';
+
+            // Create subtle shield visual (border glow, not full screen)
+            let shieldOverlay = document.getElementById('shield-overlay');
+            if (!shieldOverlay) {
+                shieldOverlay = document.createElement('div');
+                shieldOverlay.id = 'shield-overlay';
+                shieldOverlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    pointer-events: none;
+                    z-index: 40;
+                    border: 4px solid rgba(0, 150, 255, 0.6);
+                    box-shadow: inset 0 0 30px rgba(0, 150, 255, 0.3);
+                    border-radius: 10px;
+                    box-sizing: border-box;
+                `;
+                document.body.appendChild(shieldOverlay);
+            }
+            shieldOverlay.style.display = 'block';
+
+            return 'Shield Active - 50% Damage Reduction';
         },
         onExpire: (player) => {
             player.shieldActive = false;
             player.damageReduction = 0;
+
+            // Remove shield visual
+            const shieldOverlay = document.getElementById('shield-overlay');
+            if (shieldOverlay) {
+                shieldOverlay.style.display = 'none';
+            }
         },
         duration: 8000, // 8 seconds
         dropChance: 0.03
