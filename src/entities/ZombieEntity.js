@@ -9,15 +9,15 @@ export class ZombieEntity {
         this.zombieType = zombieType;
         this.typeConfig = ZOMBIE_TYPES[zombieType] || ZOMBIE_TYPES.walker;
 
-        // Create humanoid zombie model with type-specific appearance
-        this.mesh = ProceduralZombie.create(zombieType);
+        // Create humanoid zombie model with type-specific appearance and variation
+        this.mesh = ProceduralZombie.create(zombieType, zombieLogic.appearanceVariation);
         this.mesh.position.set(x, 0, z);
 
         // Store initial Y position for animation
         this.initialY = 0;
 
-        // Apply scale based on type
-        this.mesh.scale.setScalar(this.typeConfig.scale);
+        // Apply scale based on type and individual size variation
+        this.mesh.scale.setScalar(zombieLogic.scale);
 
         // Get body part references for animation
         this.head = this.mesh.userData.head;

@@ -73,18 +73,37 @@ export class Zombie {
         this.type = type;
         this.typeConfig = ZOMBIE_TYPES[type] || ZOMBIE_TYPES.walker;
 
-        // Base stats with type multipliers
+        // Individual variation factor (0.7 to 1.3 = ±30% variation)
+        this.individualVariation = 0.7 + Math.random() * 0.6;
+
+        // Size variation affects HP and damage
+        this.sizeVariation = 0.85 + Math.random() * 0.3; // 0.85 to 1.15
+
+        // Base stats with type multipliers and individual variation
         const baseHp = 50 + (effectiveLevel * 10) + (Math.pow(effectiveLevel, 1.2) * 5);
         const baseDamage = 5 + effectiveLevel;
         const baseSpeed = 2 + (effectiveLevel * 0.1);
 
-        this.maxHp = Math.floor(baseHp * this.typeConfig.hpMultiplier);
+        // Apply type multiplier, individual variation, and size bonus
+        this.maxHp = Math.floor(baseHp * this.typeConfig.hpMultiplier * this.individualVariation * this.sizeVariation);
         this.hp = this.maxHp;
-        this.damage = Math.floor(baseDamage * this.typeConfig.damageMultiplier);
-        this.speed = baseSpeed * this.typeConfig.speedMultiplier;
-        this.scale = this.typeConfig.scale;
+        this.damage = Math.floor(baseDamage * this.typeConfig.damageMultiplier * (0.8 + this.sizeVariation * 0.4));
+        this.speed = baseSpeed * this.typeConfig.speedMultiplier * (0.85 + Math.random() * 0.3);
+        this.scale = this.typeConfig.scale * this.sizeVariation;
         this.color = this.typeConfig.color;
         this.special = this.typeConfig.special;
+
+        // Random appearance variations (for visual diversity)
+        this.appearanceVariation = {
+            skinTone: Math.random(),           // 0-1: affects skin color shade
+            woundCount: Math.floor(Math.random() * 4), // 0-3 wounds
+            hasMissingLimb: Math.random() < 0.1, // 10% chance missing limb
+            clothingDamage: Math.random(),     // 0-1: how torn clothes are
+            bloodAmount: Math.random(),        // 0-1: blood coverage
+            isFresh: Math.random() < 0.3,      // 30% fresher looking zombies
+            isDecayed: Math.random() < 0.2,    // 20% more decayed
+            hasExposedBone: Math.random() < 0.15, // 15% exposed bones
+        };
 
         // State flags
         this.isBuffed = false;

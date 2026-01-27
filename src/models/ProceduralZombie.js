@@ -17,6 +17,73 @@ export class ProceduralZombie {
     static CLOTH_TORN = 0x2d2d2d;      // Torn shirt
     static BONE_COLOR = 0xe0d8c8;      // Exposed bone
 
+    // Skin color variations for diversity
+    static SKIN_VARIATIONS = [
+        { base: 0x4a6b3a, alt: 0x3d5c2d },  // Classic green
+        { base: 0x5a6b4a, alt: 0x4a5c3d },  // Pale green
+        { base: 0x6b6b5a, alt: 0x5c5c4d },  // Gray-green
+        { base: 0x7a6b5a, alt: 0x6b5c4d },  // Brown-gray (fresh)
+        { base: 0x4a4a5a, alt: 0x3d3d4d },  // Blue-gray (cold)
+        { base: 0x5a5a4a, alt: 0x4d4d3d },  // Olive
+        { base: 0x3a4a3a, alt: 0x2d3d2d },  // Dark green (decayed)
+        { base: 0x6a5a5a, alt: 0x5d4d4d },  // Pale flesh
+    ];
+
+    // Clothing color variations
+    static CLOTH_VARIATIONS = [
+        { shirt: 0x2d2d2d, pants: 0x1a1a1a },  // Dark gray
+        { shirt: 0x3d2d2d, pants: 0x2a1a1a },  // Dark red-brown
+        { shirt: 0x2d3d2d, pants: 0x1a2a1a },  // Dark green
+        { shirt: 0x2d2d3d, pants: 0x1a1a2a },  // Dark blue
+        { shirt: 0x4a4a4a, pants: 0x2a2a2a },  // Medium gray
+        { shirt: 0x5a4a3a, pants: 0x3a2a1a },  // Brown (worker)
+        { shirt: 0xf0f0e8, pants: 0x2a2a3a },  // White shirt (office)
+        { shirt: 0x8b0000, pants: 0x1a1a1a },  // Bloody shirt
+    ];
+
+    /**
+     * Helper to blend two colors
+     */
+    static blendColors(color1, color2, factor) {
+        const r1 = (color1 >> 16) & 0xff;
+        const g1 = (color1 >> 8) & 0xff;
+        const b1 = color1 & 0xff;
+        const r2 = (color2 >> 16) & 0xff;
+        const g2 = (color2 >> 8) & 0xff;
+        const b2 = color2 & 0xff;
+        const r = Math.round(r1 + (r2 - r1) * factor);
+        const g = Math.round(g1 + (g2 - g1) * factor);
+        const b = Math.round(b1 + (b2 - b1) * factor);
+        return (r << 16) | (g << 8) | b;
+    }
+
+    /**
+     * Get type-specific colors with variation applied
+     */
+    static getTypeColorsWithVariation(zombieType, variation) {
+        const baseColors = this.getTypeColors(zombieType);
+        const skinVariant = this.SKIN_VARIATIONS[variation.skinVariantIndex];
+
+        // Blend type color with random skin variant
+        let skinColor = this.blendColors(baseColors.SKIN_COLOR, skinVariant.base, 0.3);
+        let skinColorAlt = this.blendColors(baseColors.SKIN_COLOR_ALT, skinVariant.alt, 0.3);
+
+        // Adjust for fresh vs decayed
+        if (variation.isFresh) {
+            skinColor = this.blendColors(skinColor, 0x8a7a6a, 0.2); // More flesh-colored
+        }
+        if (variation.isDecayed) {
+            skinColor = this.blendColors(skinColor, 0x2a3a2a, 0.3); // Darker, more green
+            skinColorAlt = this.blendColors(skinColorAlt, 0x1a2a1a, 0.3);
+        }
+
+        return {
+            ...baseColors,
+            SKIN_COLOR: skinColor,
+            SKIN_COLOR_ALT: skinColorAlt
+        };
+    }
+
     /**
      * Get type-specific colors
      */
@@ -83,23 +150,47 @@ export class ProceduralZombie {
     }
 
     /**
+     * Generate random appearance variation
+     */
+    static generateAppearanceVariation() {
+        return {
+            skinTone: Math.random(),
+            woundCount: Math.floor(Math.random() * 4),
+            hasMissingLimb: Math.random() < 0.1,
+            clothingDamage: Math.random(),
+            bloodAmount: Math.random(),
+            isFresh: Math.random() < 0.3,
+            isDecayed: Math.random() < 0.2,
+            hasExposedBone: Math.random() < 0.15,
+            skinVariantIndex: Math.floor(Math.random() * this.SKIN_VARIATIONS.length),
+            clothVariantIndex: Math.floor(Math.random() * this.CLOTH_VARIATIONS.length),
+        };
+    }
+
+    /**
      * Create a complete zombie model
      * @param {string} zombieType - Type of zombie (walker, runner, tank, etc.)
+     * @param {object} appearanceVariation - Optional appearance variation data
      * @returns {THREE.Group} Zombie model group with animation references
      */
-    static create(zombieType = 'walker') {
+    static create(zombieType = 'walker', appearanceVariation = null) {
         const group = new THREE.Group();
 
-        // Get type-specific colors
-        const colors = this.getTypeColors(zombieType);
+        // Generate or use provided appearance variation
+        const variation = appearanceVariation || this.generateAppearanceVariation();
+        group.userData.appearanceVariation = variation;
 
-        // Create body parts with type-specific colors
-        const head = this.createHead(colors);
-        const torso = this.createTorso(colors, zombieType);
-        const leftArm = this.createArm(colors);
-        const rightArm = this.createArm(colors);
-        const leftLeg = this.createLeg(colors);
-        const rightLeg = this.createLeg(colors);
+        // Get type-specific colors with variation applied
+        const colors = this.getTypeColorsWithVariation(zombieType, variation);
+        const clothColors = this.CLOTH_VARIATIONS[variation.clothVariantIndex];
+
+        // Create body parts with type-specific colors and variation
+        const head = this.createHead(colors, variation);
+        const torso = this.createTorso(colors, zombieType, clothColors, variation);
+        const leftArm = this.createArm(colors, variation, clothColors);
+        const rightArm = this.createArm(colors, variation, clothColors);
+        const leftLeg = this.createLeg(colors, variation, clothColors);
+        const rightLeg = this.createLeg(colors, variation, clothColors);
 
         // Position body parts
         head.position.set(0, 1.65, 0);
@@ -120,6 +211,15 @@ export class ProceduralZombie {
         // Add type-specific visual features
         this.addTypeFeatures(group, zombieType, colors);
 
+        // Add random wounds and blood based on variation
+        this.addRandomWounds(group, variation, colors);
+        this.addBloodSplatters(group, variation);
+
+        // Add exposed bones if applicable
+        if (variation.hasExposedBone) {
+            this.addExposedBones(group);
+        }
+
         // Store references for animation
         group.userData = {
             head,
@@ -129,6 +229,7 @@ export class ProceduralZombie {
             leftLeg,
             rightLeg,
             zombieType,
+            appearanceVariation: variation,
             // Store original materials for damage flash
             materials: []
         };
@@ -149,6 +250,178 @@ export class ProceduralZombie {
         });
 
         return group;
+    }
+
+    /**
+     * Add random wounds to the zombie
+     */
+    static addRandomWounds(group, variation, colors) {
+        const woundMat = new THREE.MeshStandardMaterial({
+            color: this.SKIN_WOUND,
+            roughness: 0.6,
+            metalness: 0.2
+        });
+
+        const woundCount = variation.woundCount;
+        for (let i = 0; i < woundCount; i++) {
+            const woundType = Math.floor(Math.random() * 3);
+            let wound;
+
+            switch (woundType) {
+                case 0: // Slash wound
+                    const slashGeo = new THREE.BoxGeometry(0.01 + Math.random() * 0.02, 0.03 + Math.random() * 0.05, 0.008);
+                    wound = new THREE.Mesh(slashGeo, woundMat);
+                    break;
+                case 1: // Bite mark (circular)
+                    const biteGeo = new THREE.TorusGeometry(0.02 + Math.random() * 0.015, 0.005, 8, 16);
+                    wound = new THREE.Mesh(biteGeo, woundMat);
+                    break;
+                case 2: // Gash
+                    const gashGeo = new THREE.CylinderGeometry(0.008, 0.012, 0.04 + Math.random() * 0.03, 6);
+                    wound = new THREE.Mesh(gashGeo, woundMat);
+                    break;
+            }
+
+            // Random position on body
+            const bodyPart = Math.floor(Math.random() * 4);
+            switch (bodyPart) {
+                case 0: // Head area
+                    wound.position.set(
+                        (Math.random() - 0.5) * 0.15,
+                        1.55 + Math.random() * 0.2,
+                        0.08 + Math.random() * 0.05
+                    );
+                    break;
+                case 1: // Torso
+                    wound.position.set(
+                        (Math.random() - 0.5) * 0.3,
+                        1.0 + Math.random() * 0.3,
+                        0.1 + Math.random() * 0.03
+                    );
+                    break;
+                case 2: // Arms
+                    wound.position.set(
+                        (Math.random() > 0.5 ? 0.35 : -0.35) + (Math.random() - 0.5) * 0.1,
+                        1.1 + Math.random() * 0.4,
+                        0.02
+                    );
+                    break;
+                case 3: // Legs
+                    wound.position.set(
+                        (Math.random() > 0.5 ? 0.12 : -0.12),
+                        0.2 + Math.random() * 0.4,
+                        0.05
+                    );
+                    break;
+            }
+
+            wound.rotation.set(
+                Math.random() * 0.5,
+                Math.random() * 0.5,
+                Math.random() * Math.PI
+            );
+
+            group.add(wound);
+        }
+    }
+
+    /**
+     * Add blood splatters to the zombie
+     */
+    static addBloodSplatters(group, variation) {
+        if (variation.bloodAmount < 0.3) return; // Skip if low blood
+
+        const bloodMat = new THREE.MeshStandardMaterial({
+            color: this.BLOOD_COLOR,
+            roughness: 0.3,
+            metalness: 0.1,
+            transparent: true,
+            opacity: 0.8
+        });
+
+        const freshBloodMat = new THREE.MeshStandardMaterial({
+            color: 0x8b0000,
+            roughness: 0.2,
+            metalness: 0.3,
+            transparent: true,
+            opacity: 0.9
+        });
+
+        const bloodCount = Math.floor(variation.bloodAmount * 8);
+        for (let i = 0; i < bloodCount; i++) {
+            const bloodType = Math.random();
+            let blood;
+
+            if (bloodType < 0.5) {
+                // Blood splatter (flat)
+                const splatterGeo = new THREE.CircleGeometry(0.02 + Math.random() * 0.03, 8);
+                blood = new THREE.Mesh(splatterGeo, variation.isFresh ? freshBloodMat : bloodMat);
+            } else if (bloodType < 0.8) {
+                // Blood drip
+                const dripGeo = new THREE.CylinderGeometry(0.003, 0.006, 0.02 + Math.random() * 0.04, 6);
+                blood = new THREE.Mesh(dripGeo, variation.isFresh ? freshBloodMat : bloodMat);
+            } else {
+                // Blood pool (on clothes)
+                const poolGeo = new THREE.PlaneGeometry(0.04 + Math.random() * 0.04, 0.03 + Math.random() * 0.03);
+                blood = new THREE.Mesh(poolGeo, bloodMat);
+            }
+
+            // Random position
+            blood.position.set(
+                (Math.random() - 0.5) * 0.4,
+                0.5 + Math.random() * 1.2,
+                0.05 + Math.random() * 0.1
+            );
+
+            blood.rotation.set(
+                Math.random() * 0.3,
+                Math.random() * Math.PI * 2,
+                Math.random() * 0.3
+            );
+
+            group.add(blood);
+        }
+    }
+
+    /**
+     * Add exposed bones to the zombie
+     */
+    static addExposedBones(group) {
+        const boneMat = new THREE.MeshStandardMaterial({
+            color: this.BONE_COLOR,
+            roughness: 0.5,
+            metalness: 0.1
+        });
+
+        // Random bone exposure location
+        const location = Math.floor(Math.random() * 3);
+
+        switch (location) {
+            case 0: // Exposed ribs
+                for (let i = 0; i < 3; i++) {
+                    const ribGeo = new THREE.CylinderGeometry(0.008, 0.01, 0.08, 6);
+                    const rib = new THREE.Mesh(ribGeo, boneMat);
+                    rib.position.set(0.08, 0.95 + i * 0.06, 0.12);
+                    rib.rotation.z = Math.PI / 2;
+                    rib.rotation.y = 0.3;
+                    group.add(rib);
+                }
+                break;
+            case 1: // Exposed arm bone
+                const armBoneGeo = new THREE.CylinderGeometry(0.012, 0.01, 0.15, 8);
+                const armBone = new THREE.Mesh(armBoneGeo, boneMat);
+                armBone.position.set(Math.random() > 0.5 ? 0.38 : -0.38, 1.0, 0.02);
+                armBone.rotation.z = 0.2;
+                group.add(armBone);
+                break;
+            case 2: // Exposed skull
+                const skullGeo = new THREE.SphereGeometry(0.04, 8, 8);
+                const skull = new THREE.Mesh(skullGeo, boneMat);
+                skull.position.set((Math.random() - 0.5) * 0.08, 1.7, 0.05);
+                skull.scale.set(1.2, 0.8, 0.5);
+                group.add(skull);
+                break;
+        }
     }
 
     /**
@@ -354,7 +627,7 @@ export class ProceduralZombie {
     /**
      * Create zombie head with realistic human proportions and horrific details
      */
-    static createHead(colors = null) {
+    static createHead(colors = null, variation = null) {
         const group = new THREE.Group();
 
         const skinColor = colors?.SKIN_COLOR || this.SKIN_COLOR;
@@ -580,15 +853,16 @@ export class ProceduralZombie {
     /**
      * Create zombie torso with torn clothing - more human-like proportions
      */
-    static createTorso(colors = null, zombieType = 'walker') {
+    static createTorso(colors = null, zombieType = 'walker', clothColors = null, variation = null) {
         const group = new THREE.Group();
 
         const skinColor = colors?.SKIN_COLOR || this.SKIN_COLOR;
         const skinColorAlt = colors?.SKIN_COLOR_ALT || this.SKIN_COLOR_ALT;
 
-        // Shirt material (torn, dirty)
+        // Shirt material (torn, dirty) - use clothColors if provided
+        const shirtColor = clothColors?.shirt || this.CLOTH_TORN;
         const shirtMat = new THREE.MeshStandardMaterial({
-            color: this.CLOTH_TORN,
+            color: shirtColor,
             roughness: 0.95
         });
 
@@ -666,10 +940,11 @@ export class ProceduralZombie {
         const rightDeltoid = new THREE.Mesh(deltoidGeo, shirtMat);
         rightDeltoid.position.set(0.22, 0.14, 0.02);
 
-        // Waist/hip area (pants)
+        // Waist/hip area (pants) - use clothColors if provided
+        const pantsColor = clothColors?.pants || this.CLOTH_DARK;
         const waistGeo = new THREE.CylinderGeometry(0.13, 0.14, 0.12, 10);
         const hipsMat = new THREE.MeshStandardMaterial({
-            color: this.CLOTH_DARK,
+            color: pantsColor,
             roughness: 0.9
         });
         const waist = new THREE.Mesh(waistGeo, hipsMat);
@@ -699,7 +974,7 @@ export class ProceduralZombie {
     /**
      * Create zombie arm (left arm, right is mirrored) - more human proportions
      */
-    static createArm(colors = null) {
+    static createArm(colors = null, variation = null, clothColors = null) {
         const group = new THREE.Group();
 
         const skinColor = colors?.SKIN_COLOR || this.SKIN_COLOR;
@@ -829,13 +1104,14 @@ export class ProceduralZombie {
     /**
      * Create zombie leg - more human proportions
      */
-    static createLeg(colors = null) {
+    static createLeg(colors = null, variation = null, clothColors = null) {
         const group = new THREE.Group();
 
         const skinColor = colors?.SKIN_COLOR || this.SKIN_COLOR;
 
+        const pantsColor = clothColors?.pants || this.CLOTH_DARK;
         const pantsMat = new THREE.MeshStandardMaterial({
-            color: this.CLOTH_DARK,
+            color: pantsColor,
             roughness: 0.9
         });
 
