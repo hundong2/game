@@ -13,6 +13,9 @@ export class ZombieEntity {
         this.mesh = ProceduralZombie.create(zombieType);
         this.mesh.position.set(x, 0, z);
 
+        // Store initial Y position for animation
+        this.initialY = 0;
+
         // Apply scale based on type
         this.mesh.scale.setScalar(this.typeConfig.scale);
 
@@ -318,9 +321,9 @@ export class ZombieEntity {
             this.torso.rotation.x = Math.sin(this.walkCycle * 0.5) * 0.05;
         }
 
-        // Vertical bobbing
+        // Vertical bobbing (relative to initial Y position)
         const verticalBob = Math.abs(Math.sin(this.walkCycle * 2)) * 0.03;
-        this.mesh.position.y = verticalBob;
+        this.mesh.position.y = this.initialY + verticalBob;
     }
 
     /**

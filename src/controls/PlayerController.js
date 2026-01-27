@@ -104,6 +104,9 @@ export class PlayerController {
 
         this.controls.moveRight(-this.velocity.x * delta);
         this.controls.moveForward(-this.velocity.z * delta);
+
+        // Fix camera Y position to prevent vertical drift when looking up/down
+        this.camera.position.y = 1.6;
     }
 
     setSpeed(speed) {
