@@ -103,6 +103,8 @@ export class Zombie {
             isFresh: Math.random() < 0.3,      // 30% fresher looking zombies
             isDecayed: Math.random() < 0.2,    // 20% more decayed
             hasExposedBone: Math.random() < 0.15, // 15% exposed bones
+            skinVariantIndex: Math.floor(Math.random() * 8), // 0-7: skin color variant
+            clothVariantIndex: Math.floor(Math.random() * 8), // 0-7: clothing color variant
         };
 
         // State flags
