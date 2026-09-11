@@ -351,3 +351,8 @@ GitHub API에서 확인한 비교 대상 별 수: `majidmanzarpour/threejs-game-
 - 사용자 지정 저장소 hundong2/zombie_game의 기존 Android/웹 코드를 현재 DEAD SIGNAL로 전체 교체하도록 승인받음.
 - 기존 main 커밋을 부모로 사용하여 교체: 이전 코드는 Git 이력에서 복구 가능하며 강제 푸시하지 않음.
 - GitHub Pages는 Actions 빌드 방식으로 설정. 배포 대상 URL: https://hundong2.github.io/zombie_game/ . 실제 배포 결과는 Actions와 공개 URL 확인 후 보고.
+
+### V17 공개 배포 검증 완료 (2026-09-12)
+- 5755399 커밋으로 기존 저장소 교체 완료. GitHub Actions 실행 34613311610에서 검사·빌드·Pages 배포 성공.
+- https://hundong2.github.io/zombie_game/ 에서 BUILD 16 로비, 9직업 목록, 작전 시작, 3D 캐릭터·좀비·도로 및 전투 HUD 렌더링, 일시정지/재개 확인. 브라우저 콘솔 오류·경고 없음.
+- 개발 PC나 LAN 서버 없이 공개 주소로 실행 가능. main 푸시 시 자동 배포되며, 온라인 통합 랭킹은 아직 없고 기록은 브라우저별 로컬 저장.
